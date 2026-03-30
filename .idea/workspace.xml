@@ -5,16 +5,7 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="fac8caa9-86d0-4c74-b370-544a4b25f148" name="Changes" comment="">
-      <change afterPath="$PROJECT_DIR$/Controlador/wealthHub/src/main/java/org/example/WealthHubApplication.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/Controlador/wealthHub/src/main/java/org/example/controlador/ActivoControlador.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/Controlador/wealthHub/src/main/java/org/example/controlador/PortofolioControlador.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/Controlador/wealthHub/src/main/java/org/example/modelo/Activo.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/Controlador/wealthHub/src/main/java/org/example/repositorio/ActivoRepository.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/Controlador/wealthHub/src/main/resources/application.properties" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/Controlador/wealthHub/src/main/resources/import.sql" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/compiler.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/compiler.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Controlador/wealthHub/pom.xml" beforeDir="false" afterPath="$PROJECT_DIR$/Controlador/wealthHub/pom.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Controlador/wealthHub/src/main/resources/application.properties" beforeDir="false" afterPath="$PROJECT_DIR$/Controlador/wealthHub/src/main/resources/application.properties" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -94,7 +85,7 @@
       <updated>1774371942311</updated>
       <workItem from="1774371943914" duration="87000" />
       <workItem from="1774458142340" duration="1646000" />
-      <workItem from="1774884954945" duration="1979000" />
+      <workItem from="1774884954945" duration="2324000" />
     </task>
     <servers />
   </component>
