@@ -5,15 +5,14 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="fac8caa9-86d0-4c74-b370-544a4b25f148" name="Changes" comment="">
-      <change afterPath="$PROJECT_DIR$/.idea/compiler.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/encodings.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/jarRepositories.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/uiDesigner.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/Controlador/wealthHub/src/main/java/org/example/controlador/UsuarioControlador.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/Controlador/wealthHub/src/main/java/org/example/modelo/Usuario.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/Controlador/wealthHub/src/main/java/org/example/repositorio/UsuarioRepository.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/Controlador/wealthHub/src/main/java/org/example/servicio/UsuarioServicio.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/misc.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/misc.xml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/Controlador/wealthHub/src/main/java/org/example/WealthHubApplication.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/Controlador/wealthHub/src/main/java/org/example/controlador/ActivoControlador.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/Controlador/wealthHub/src/main/java/org/example/controlador/PortofolioControlador.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/Controlador/wealthHub/src/main/java/org/example/modelo/Activo.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/Controlador/wealthHub/src/main/java/org/example/repositorio/ActivoRepository.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/Controlador/wealthHub/src/main/resources/application.properties" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/Controlador/wealthHub/src/main/resources/import.sql" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/compiler.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/compiler.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Controlador/wealthHub/pom.xml" beforeDir="false" afterPath="$PROJECT_DIR$/Controlador/wealthHub/pom.xml" afterDir="false" />
     </list>
@@ -30,7 +29,15 @@
     </option>
   </component>
   <component name="Git.Settings">
+    <option name="RECENT_BRANCH_BY_REPOSITORY">
+      <map>
+        <entry key="$PROJECT_DIR$" value="main" />
+      </map>
+    </option>
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
+  </component>
+  <component name="ProblemsViewState">
+    <option name="selectedTabId" value="CurrentFile" />
   </component>
   <component name="ProjectColorInfo">{
   &quot;associatedIndex&quot;: 4
@@ -42,8 +49,14 @@
   </component>
   <component name="PropertiesComponent"><![CDATA[{
   "keyToString": {
+    "Application.Main.executor": "Run",
+    "RequestMappingsPanelOrder0": "0",
+    "RequestMappingsPanelOrder1": "1",
+    "RequestMappingsPanelWidth0": "75",
+    "RequestMappingsPanelWidth1": "75",
     "RunOnceActivity.ShowReadmeOnStart": "true",
     "SHARE_PROJECT_CONFIGURATION_FILES": "true",
+    "Spring Boot.WealthHubApplication.executor": "Run",
     "git-widget-placeholder": "Enrique-branch",
     "kotlin-language-version-configured": "true",
     "node.js.detected.package.eslint": "true",
@@ -54,6 +67,15 @@
     "vue.rearranger.settings.migration": "true"
   }
 }]]></component>
+  <component name="RunManager">
+    <configuration name="WealthHubApplication" type="SpringBootApplicationConfigurationType" factoryName="Spring Boot" nameIsGenerated="true">
+      <module name="wealthHub" />
+      <option name="SPRING_BOOT_MAIN_CLASS" value="org.example.WealthHubApplication" />
+      <method v="2">
+        <option name="Make" enabled="true" />
+      </method>
+    </configuration>
+  </component>
   <component name="SharedIndexes">
     <attachedChunks>
       <set>
@@ -72,10 +94,22 @@
       <updated>1774371942311</updated>
       <workItem from="1774371943914" duration="87000" />
       <workItem from="1774458142340" duration="1646000" />
+      <workItem from="1774884954945" duration="1979000" />
     </task>
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
     <option name="version" value="3" />
+  </component>
+  <component name="Vcs.Log.Tabs.Properties">
+    <option name="TAB_STATES">
+      <map>
+        <entry key="MAIN">
+          <value>
+            <State />
+          </value>
+        </entry>
+      </map>
+    </option>
   </component>
 </project>
