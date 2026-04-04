@@ -55,6 +55,7 @@ sudo apt update && sudo apt upgrade -y
 
 #### Instalar Node.js 20 (LTS)
 curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
+
 sudo apt install -y nodejs
 
 #### Verificar
@@ -67,11 +68,14 @@ cd ~/ruta/a/tu/proyecto/Vista
 
 #### Instalar dependencias
 npm install
+
 npx shadcn@latest add button card input label badge alert-dialog checkbox select separator switch table tabs accordion avatar breadcrumb calendar collapsible command context-menu dialog drawer dropdown-menu form hover-card menubar navigation-menu pagination popover progress radio-group resizable scroll-area sheet sidebar skeleton slider sonner textarea toggle-group toggle tooltip
 
 #### (Opcional) Instalación limpia
 rm -rf node_modules package-lock.json
+
 npm install
+
 npx shadcn@latest add button card input label badge alert-dialog checkbox select separator switch table tabs accordion avatar breadcrumb calendar collapsible command context-menu dialog drawer dropdown-menu form hover-card menubar navigation-menu pagination popover progress radio-group resizable scroll-area sheet sidebar skeleton slider sonner textarea toggle-group toggle tooltip
 
 
