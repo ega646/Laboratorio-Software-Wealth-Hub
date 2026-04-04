@@ -26,7 +26,6 @@ Este proyecto es una aplicación **Next.js 15** con **TypeScript**, **Tailwind C
    node -v
    npm -v
 
-
 ### Paso 2: Instalar dependencias del proyecto
 Abre PowerShell o Terminal dentro de la carpeta del proyecto (Vista) y ejecuta:
 
