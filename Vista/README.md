@@ -31,11 +31,14 @@ Abre PowerShell o Terminal dentro de la carpeta del proyecto (Vista) y ejecuta:
 
 #### Instalar todas las dependencias
 npm install
+
 npx shadcn@latest add button card input label badge alert-dialog checkbox select separator switch table tabs accordion avatar breadcrumb calendar collapsible command context-menu dialog drawer dropdown-menu form hover-card menubar navigation-menu pagination popover progress radio-group resizable scroll-area sheet sidebar skeleton slider sonner textarea toggle-group toggle tooltip
 
 #### (Recomendado la primera vez) Instalación limpia
 Remove-Item -Recurse -Force node_modules, package-lock.json -ErrorAction SilentlyContinue
+
 npm install
+
 npx shadcn@latest add button card input label badge alert-dialog checkbox select separator switch table tabs accordion avatar breadcrumb calendar collapsible command context-menu dialog drawer dropdown-menu form hover-card menubar navigation-menu pagination popover progress radio-group resizable scroll-area sheet sidebar skeleton slider sonner textarea toggle-group toggle tooltip
 
 
