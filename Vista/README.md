@@ -41,14 +41,10 @@ npm install
 
 npx shadcn@latest add button card input label badge alert-dialog checkbox select separator switch table tabs accordion avatar breadcrumb calendar collapsible command context-menu dialog drawer dropdown-menu form hover-card menubar navigation-menu pagination popover progress radio-group resizable scroll-area sheet sidebar skeleton slider sonner textarea toggle-group toggle tooltip
 
-
 ### Paso 3: Ejecutar el proyecto
 npm run dev
 
 Abre tu navegador en: http://localhost:3000
-
-
-
 
 ## 2. Instalación en Linux (Ubuntu / Debian)
 
@@ -65,7 +61,6 @@ sudo apt install -y nodejs
 node -v
 npm -v
 
-
 ### Paso 2: Instalar dependencias del proyecto
 cd ~/ruta/a/tu/proyecto/Vista
 
@@ -80,7 +75,6 @@ rm -rf node_modules package-lock.json
 npm install
 
 npx shadcn@latest add button card input label badge alert-dialog checkbox select separator switch table tabs accordion avatar breadcrumb calendar collapsible command context-menu dialog drawer dropdown-menu form hover-card menubar navigation-menu pagination popover progress radio-group resizable scroll-area sheet sidebar skeleton slider sonner textarea toggle-group toggle tooltip
-
 
 ### Paso 3: Ejecutar el proyecto
 npm run dev
