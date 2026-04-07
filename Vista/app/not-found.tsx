@@ -8,7 +8,7 @@ import { Home, ArrowLeft, Search } from "lucide-react";
 export default function NotFound() {
   return (
     <div className="min-h-screen bg-gray-50">
-      <Header isLoggedIn={false} />
+      <Header />
 
       <div className="max-w-2xl mx-auto px-4 py-20 flex flex-col items-center justify-center min-h-[calc(100vh-64px)] text-center">
         <Card className="w-full max-w-md">
