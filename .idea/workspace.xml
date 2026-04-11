@@ -5,16 +5,10 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="fac8caa9-86d0-4c74-b370-544a4b25f148" name="Changes" comment="">
-      <change afterPath="$PROJECT_DIR$/Controlador/wealthHub/src/main/java/org/example/WealthHubApplication.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/Controlador/wealthHub/src/main/java/org/example/controlador/ActivoControlador.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/Controlador/wealthHub/src/main/java/org/example/controlador/PortofolioControlador.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/Controlador/wealthHub/src/main/java/org/example/modelo/Activo.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/Controlador/wealthHub/src/main/java/org/example/repositorio/ActivoRepository.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/Controlador/wealthHub/src/main/resources/application.properties" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/Controlador/wealthHub/src/main/resources/import.sql" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/compiler.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/compiler.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Controlador/wealthHub/pom.xml" beforeDir="false" afterPath="$PROJECT_DIR$/Controlador/wealthHub/pom.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Controlador/wealthHub/.idea/misc.xml" beforeDir="false" afterPath="$PROJECT_DIR$/Controlador/wealthHub/.idea/misc.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Controlador/wealthHub/src/main/java/org/example/controlador/UsuarioControlador.java" beforeDir="false" afterPath="$PROJECT_DIR$/Controlador/wealthHub/src/main/java/org/example/controlador/UsuarioControlador.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Controlador/wealthHub/src/main/java/org/example/servicio/UsuarioServicio.java" beforeDir="false" afterPath="$PROJECT_DIR$/Controlador/wealthHub/src/main/java/org/example/servicio/UsuarioServicio.java" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -57,7 +51,7 @@
     "RunOnceActivity.ShowReadmeOnStart": "true",
     "SHARE_PROJECT_CONFIGURATION_FILES": "true",
     "Spring Boot.WealthHubApplication.executor": "Run",
-    "git-widget-placeholder": "Enrique-branch",
+    "git-widget-placeholder": "main",
     "kotlin-language-version-configured": "true",
     "node.js.detected.package.eslint": "true",
     "node.js.detected.package.tslint": "true",
@@ -79,8 +73,8 @@
   <component name="SharedIndexes">
     <attachedChunks>
       <set>
-        <option value="bundled-jdk-9823dce3aa75-28b599e66164-intellij.indexing.shared.core-IU-242.23339.11" />
-        <option value="bundled-js-predefined-d6986cc7102b-5c90d61e3bab-JavaScript-IU-242.23339.11" />
+        <option value="bundled-jdk-9823dce3aa75-28b599e66164-intellij.indexing.shared.core-IU-242.23726.103" />
+        <option value="bundled-js-predefined-d6986cc7102b-5c90d61e3bab-JavaScript-IU-242.23726.103" />
       </set>
     </attachedChunks>
   </component>
@@ -95,6 +89,7 @@
       <workItem from="1774371943914" duration="87000" />
       <workItem from="1774458142340" duration="1646000" />
       <workItem from="1774884954945" duration="1979000" />
+      <workItem from="1775895136968" duration="2072000" />
     </task>
     <servers />
   </component>
