@@ -8,6 +8,7 @@ import {
   User, Settings, Shield, CreditCard, MapPin, Briefcase, 
   ArrowLeft, LogOut 
 } from "lucide-react";
+import { useAuth } from "@/lib/context/AuthContext";   // ← Añadido
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -15,6 +16,7 @@ import { Badge } from "@/components/ui/badge";
 
 export default function Perfil() {
   const [selectedTab, setSelectedTab] = useState("general");
+  const { logout } = useAuth();     // ← Añadido
 
   const tabs = [
     { id: "general", label: "Información General", icon: User },
@@ -24,7 +26,8 @@ export default function Perfil() {
   ];
 
   const handleLogout = () => {
-    window.location.href = "/";
+    logout();                    // ← Ahora usa el logout del contexto
+    window.location.href = "/";  // Redirige al landing
   };
 
   return (
@@ -71,7 +74,7 @@ export default function Perfil() {
                 </div>
               </div>
 
-              {/* Botones un poco más grandes y con mismo estilo */}
+              {/* Botones */}
               <div className="flex gap-4">
                 <Button 
                   asChild 
