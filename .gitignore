@@ -29,3 +29,7 @@ target/
 
 # Herramientas locales
 .codex
+
+#Ignoramos las carpetas que se crean en cada ejecución de la vista
+node_modules/       #Dependencias
+.next/
