@@ -1,8 +1,8 @@
-package Modelo.base.model;
+package org.example.modelo.BD.clases;
 
-import Modelo.base.service.SvcPL;
-import Modelo.base.service.SvcUtl;
 import lombok.Data;
+import org.example.modelo.BD.servicios.SvcPL;
+import org.example.modelo.BD.servicios.SvcUtl;
 
 import java.util.ArrayList;
 import java.util.Arrays;

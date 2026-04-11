@@ -1,6 +1,8 @@
-package Modelo.base.service;
+package org.example.modelo.BD.servicios;
 
 import lombok.NonNull;
+import org.example.modelo.BD.apoyo.ConexionSupaBase;
+
 import java.math.BigDecimal;
 import java.math.MathContext;
 import java.math.RoundingMode;
@@ -318,7 +320,7 @@ public class SvcPL
     public static Clob toClob (int posicion, String datos) throws SQLException
     {
         Clob c;
-        Conexion conn = AplicationUtils.getConexionGfin();
+        Connection conn = ConexionSupaBase.obtieneConexion();
         c = conn.createClob();
         c.setString(posicion, datos);
         return c;
@@ -328,6 +330,7 @@ public class SvcPL
         return toClob(1, datos);
     }
 
+    /*
     public static boolean betweenFechas(LocalDate fechaInicial, LocalDate fechaFinal, @NonNull LocalDate fecha)
     {
         LocalDate fecini = SvcPL.nvl(fechaInicial,SvcUtl.getFechaInicialMin());
@@ -335,5 +338,6 @@ public class SvcPL
 
         return (!fecha.isBefore(fecini) && !fecha.isAfter(fecfin));
     }
+     */
 
 }

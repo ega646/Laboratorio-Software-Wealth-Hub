@@ -1,13 +1,13 @@
-package Modelo.base.service;
+package org.example.modelo.BD.servicios;
 
-import Modelo.base.model.PrcParam;
 import lombok.extern.slf4j.Slf4j;
+import org.example.modelo.BD.clases.PrcParam;
 
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
-import static Modelo.base.service.SvcUtl.getMetodoActual;
+import static org.example.modelo.BD.servicios.SvcUtl.getMetodoActual;
 
 @Slf4j
 public class SvcErr

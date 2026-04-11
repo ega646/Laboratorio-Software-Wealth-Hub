@@ -1,7 +1,7 @@
-package Modelo.base.model.tabla;
+package org.example.modelo.BD.clases.tabla;
 
-import Modelo.base.utils.ColumnaBD;
 import lombok.Data;
+import org.example.modelo.BD.apoyo.ColumnaBD;
 
 @Data
 public class Divisas

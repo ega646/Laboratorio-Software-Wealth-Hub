@@ -1,9 +1,11 @@
-package Modelo.base.service;
+package org.example.modelo.BD.servicios;
 
-import Modelo.base.model.OracleTable;
-import Modelo.base.model.PrcParam;
 import lombok.extern.slf4j.Slf4j;
+import org.example.modelo.BD.apoyo.ConexionSupaBase;
+import org.example.modelo.BD.clases.OracleTable;
+import org.example.modelo.BD.clases.PrcParam;
 
+import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -17,7 +19,8 @@ public class SvcOracleDatabase
 {
     private SvcOracleDatabase(){throw new IllegalStateException("Service class");}
 
-    public static List<String> getOracleFields(String owner, String tabla, Conexion conn) throws Exception {
+    /*
+    public static List<String> getOracleFields(String owner, String tabla, Connection conn) throws Exception {
         List<String> lisCampos = new ArrayList<>();
         try
         {
@@ -31,13 +34,14 @@ public class SvcOracleDatabase
         }
         return lisCampos;
     }
+     */
 
     public static String getOracleObjectType (String owner, String objectName) throws Exception, SQLException{
-        try (Conexion conn = AplicationUtils.getConexionGfin()){
+        try (Connection conn = ConexionSupaBase.obtieneConexion()){
             return getOracleObjectType(owner,objectName,conn);
         }
     }
-    public static String getOracleObjectType (String owner, String objectName, Conexion conn) throws Exception, SQLException
+    public static String getOracleObjectType (String owner, String objectName, Connection conn) throws Exception, SQLException
     {
         SvcErr.ctrlParam(new ArrayList<>(Arrays.asList( new PrcParam("owner", owner,"S"),
                                                         new PrcParam("objectName", objectName,"S"))));
@@ -53,7 +57,7 @@ public class SvcOracleDatabase
                     "       WHERE OWNER       = ? " +
                     "         AND OBJECT_NAME = ? ";
 
-            stmt = conn.getConnection().prepareStatement(sql);
+            stmt = conn.prepareStatement(sql);
 
             SvcDatabase.setValue(stmt,1,owner);
             SvcDatabase.setValue(stmt,2,objectName);
@@ -65,17 +69,15 @@ public class SvcOracleDatabase
 
             if (SvcUtl.isNuloOVacio(result))
                 throw new Exception("El objeto "+owner+"."+objectName+" no existe en la base de datos.");
-        }
-        finally
-        {
-            BDUtils.close(stmt,rs);
+        } catch (Exception e) {
+            throw new RuntimeException(e);
         }
         return result;
     }
-
+  /*
     public static List<OracleTable> getOracleObject (String owner, String objectName) throws Exception, SQLException
     {
-        try (Conexion conn = AplicationUtils.getConexionGfin()){
+        try (Connection conn = ConexionSupaBase.obtieneConexion()){
             return getOracleObject(owner, objectName, conn);
         }
     }
@@ -395,4 +397,6 @@ public class SvcOracleDatabase
 
         return result;
     }
+
+   */
 }

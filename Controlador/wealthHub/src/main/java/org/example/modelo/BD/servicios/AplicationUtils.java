@@ -1,4 +1,4 @@
-package Modelo.base.service;
+package org.example.modelo.BD.servicios;
 
 import lombok.extern.slf4j.Slf4j;
 
@@ -18,11 +18,6 @@ public class AplicationUtils {
     private AplicationUtils() {
         super();
     }
-
-    public static Conexion getConexionGfin() throws SQLException {
-        return BDRes.getConexion(CONEXION_DESC, ENTORNO);
-    }
-
 
     public static String getProp(String resourceFile, String propName)throws IOException {
 

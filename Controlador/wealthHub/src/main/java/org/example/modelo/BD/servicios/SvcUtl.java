@@ -1,7 +1,7 @@
-package Modelo.base.service;
+package org.example.modelo.BD.servicios;
 
-import Modelo.base.model.Param;
 import lombok.extern.slf4j.Slf4j;
+import org.example.modelo.BD.clases.Param;
 
 import java.io.IOException;
 import java.math.BigDecimal;
@@ -128,13 +128,13 @@ public class SvcUtl
         return AplicationUtils.getProp(file,property);
     }
 
-
+/*
     public static LocalDate getFechaInicialMin() { return SvcPL.toDate("01/01/1900"); }
     public static LocalDate getFechaFinalMax()
     {
         return SvcPL.toDate("31/12/2500");
     }
-
+*/
     public static String formatearCadena(String cadena){
 
         if (SvcUtl.isNuloOVacio(cadena))

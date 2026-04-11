@@ -1,4 +1,4 @@
-package Modelo.base.utils;
+package org.example.modelo.BD.apoyo;
 
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;

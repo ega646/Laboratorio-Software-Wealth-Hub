@@ -1,18 +1,13 @@
-package Modelo.base.utils;
+package org.example.modelo.BD.apoyo;
 
-
-import Modelo.base.model.PrcParam;
-import Modelo.base.service.AplicationUtils;
-import Modelo.base.service.SvcErr;
-import Modelo.base.service.SvcUtl;
 import lombok.extern.slf4j.Slf4j;
-import oracle.jdbc.OracleConnection;
+import org.example.modelo.BD.clases.PrcParam;
+import org.example.modelo.BD.servicios.SvcErr;
+import org.example.modelo.BD.servicios.SvcPL;
+import org.example.modelo.BD.servicios.SvcUtl;
 
 import java.lang.reflect.Field;
-import java.sql.Array;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.sql.Struct;
+import java.sql.*;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -76,6 +71,7 @@ public class CorrespondenciaBD
         return result.toString();
     }
 
+    /*
     public static void setCampos (ResultSet rs, Object registro, List<String> campos) throws SQLException
     {
         List<String> listaCampos;
@@ -104,8 +100,7 @@ public class CorrespondenciaBD
     }
     public static void setCampos (ResultSet rs, Object registro) throws SQLException { setCampos (rs, registro, null); }
 
-    public static Struct setDBType (String tipoDB, Object tipo)
-    {
+    public static Struct setDBType (String tipoDB, Object tipo) throws Exception {
         SvcErr.ctrlParam(new ArrayList<>(Arrays.asList(new PrcParam("tipoDB", tipoDB,"S"),
                                                        new PrcParam("tipo", tipo,"S"))));
         Struct result;
@@ -162,8 +157,7 @@ public class CorrespondenciaBD
         return result;
     }
 
-    public static Array setDBCollection (String tipoDB, String subTipoBD, Object tipo)
-    {
+    public static Array setDBCollection (String tipoDB, String subTipoBD, Object tipo) throws Exception {
         SvcErr.ctrlParam(new ArrayList<>(Arrays.asList(new PrcParam("tipoDB", tipoDB,"S"),
                                                        new PrcParam("subTipoBD", subTipoBD,"S"))));
 
@@ -186,7 +180,7 @@ public class CorrespondenciaBD
                 lista[n] = elemento;
             }
 
-            Conexion conn = AplicationUtils.getConexionGfin();
+            Connection conn = ConexionSupaBase.obtieneConexion();
             result = (conn.unwrap(OracleConnection.class)).createOracleArray(tipoDB, lista);
         }
         catch (Exception ex)
@@ -209,4 +203,5 @@ public class CorrespondenciaBD
         }
         return result;
     }
+     */
 }

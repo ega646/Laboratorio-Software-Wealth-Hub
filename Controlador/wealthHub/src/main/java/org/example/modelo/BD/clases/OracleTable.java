@@ -1,4 +1,4 @@
-package Modelo.base.model;
+package org.example.modelo.BD.clases;
 
 import lombok.Data;
 

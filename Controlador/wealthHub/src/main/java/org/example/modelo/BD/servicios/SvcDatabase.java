@@ -1,4 +1,4 @@
-package Modelo.base.service;
+package org.example.modelo.BD.servicios;
 
 import java.io.ByteArrayInputStream;
 import java.math.BigDecimal;
@@ -11,7 +11,7 @@ public class SvcDatabase {
     private SvcDatabase() { throw new IllegalStateException("Service class"); }
 
     /* Helper para asignar valores a PreparedStatement */
-    public static void setValue(PreparedStatement stmt, int index, Object valor) throws SQLException {
+    public static void setValue(PreparedStatement stmt, int index, Object valor) throws Exception {
         if (valor == null) {
             stmt.setNull(index, Types.NULL);
             return;
@@ -33,10 +33,10 @@ public class SvcDatabase {
             stmt.setTimestamp(index, SvcPL.toTimestamp((LocalDateTime)valor));
         } else if (ByteArrayInputStream.class.equals(valor.getClass())) {
             stmt.setBinaryStream(index, (ByteArrayInputStream) valor, ((ByteArrayInputStream) valor).available());
-        } else if (oracle.sql.BLOB.class.equals(valor.getClass()) || Blob.class.equals(valor.getClass())) {
-            stmt.setBlob(index, (Blob) valor);
-        } else if (oracle.sql.CLOB.class.equals(valor.getClass()) || Clob.class.equals(valor.getClass())) {
-            stmt.setClob(index, (Clob) valor);
+       // } else if (oracle.sql.BLOB.class.equals(valor.getClass()) || Blob.class.equals(valor.getClass())) {
+       //     stmt.setBlob(index, (Blob) valor);
+       // } else if (oracle.sql.CLOB.class.equals(valor.getClass()) || Clob.class.equals(valor.getClass())) {
+       //     stmt.setClob(index, (Clob) valor);
         } else {
             throw new Exception("Oracle: Tipo no programado: " + valor.getClass());
         }
