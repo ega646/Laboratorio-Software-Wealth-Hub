@@ -8,7 +8,7 @@ import {
   User, Settings, Shield, CreditCard, MapPin, Briefcase, 
   ArrowLeft, LogOut 
 } from "lucide-react";
-import { useAuth } from "@/lib/context/AuthContext";   // ← Añadido
+import { useAuth } from "@/lib/context/AuthContext";   
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -16,7 +16,7 @@ import { Badge } from "@/components/ui/badge";
 
 export default function Perfil() {
   const [selectedTab, setSelectedTab] = useState("general");
-  const { logout } = useAuth();     // ← Añadido
+  const { logout } = useAuth();     
 
   const tabs = [
     { id: "general", label: "Información General", icon: User },
