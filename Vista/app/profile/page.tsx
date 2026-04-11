@@ -52,7 +52,7 @@ export default function Perfil() {
           <CardContent className="p-12">
             <div className="flex flex-col md:flex-row gap-8 items-center">
               <div className="w-28 h-28 bg-gradient-to-br from-blue-500 to-purple-500 rounded-3xl flex items-center justify-center text-white text-6xl font-bold shrink-0">
-                JP
+                MG
               </div>
               <div className="flex-1">
                 <h1 className="text-5xl font-bold">Manuel García</h1>
