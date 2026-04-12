@@ -5,8 +5,8 @@ import org.example.modelo.BD.clases.tabla.Divisas;
 import org.example.modelo.BD.servicios.SvcUtl;
 import org.example.modelo.BD.servicios.tabla.SvcDivisas;
 import org.junit.Test;
+import org.junit.jupiter.api.Assertions;
 
-import java.io.IOException;
 import java.sql.SQLException;
 import java.util.List;
 
@@ -32,18 +32,16 @@ public class TestConexionBD
      * Comprueba las operaciones asociadas a divisa (CRUD) y en consecuencia la conexion con la BD
      * Elegimos divisa al ser una tabla estable
      * @throws SQLException
-     * @throws IOException
      */
-    @Test public void divisas() throws SQLException, IOException {
+    @Test public void divisas() throws SQLException {
 
         //Create de una divisa
         Divisas divisaPrueba = new Divisas();
         divisaPrueba.setCodigo("XXX");
         divisaPrueba.setDescripcion("Divisa para pruebas");
 
-        /*
         try{
-            SvcDivisas.create(divisaPrueba);
+            SvcDivisas.addDivisas(divisaPrueba);
         }
         catch (Exception ex)
         {
@@ -54,8 +52,7 @@ public class TestConexionBD
         //Read de la divisa creada
         try{
             Divisas divisaComprobacion = SvcDivisas.getDivisaPK("XXX");
-            SvcDivisas.create(divisaPrueba);
-
+            Assertions.assertEquals(divisaPrueba.getDescripcion(),divisaComprobacion.getDescripcion());
         }
         catch (Exception ex)
         {
@@ -64,9 +61,30 @@ public class TestConexionBD
         }
 
         //Update de la divisa
+        try{
+            Divisas divisaComprobacion = SvcDivisas.getDivisaPK("XXX");
+            divisaComprobacion.setDescripcion("Nueva DESC");
+            SvcDivisas.updateDivisas(divisaComprobacion);
+            Divisas divisaModificada = SvcDivisas.getDivisaPK("XXX");
+            Assertions.assertNotEquals(divisaPrueba.getDescripcion(),divisaModificada.getDescripcion());
+        }
+        catch (Exception ex)
+        {
+            fail(SvcUtl.getMetodoActual()+"."+ex.getClass().getSimpleName()+
+                    ") Fallo en TestConexionBD en UPDATE de DIVISA (msg:"+ex.getMessage()+")");
+        }
 
         //Delete de la divisa
-        */
+        try{
+            SvcDivisas.deleteDivisas("XXX");
+            Divisas divisaComprobacion = SvcDivisas.getDivisaPK("XXX");
+            Assertions.assertEquals(null,divisaComprobacion);
+        }
+        catch (Exception ex)
+        {
+            fail(SvcUtl.getMetodoActual()+"."+ex.getClass().getSimpleName()+
+                    ") Fallo en TestConexionBD en DELETE de DIVISA (msg:"+ex.getMessage()+")");
+        }
 
         //Lista de todas las divisas existentes
         try{

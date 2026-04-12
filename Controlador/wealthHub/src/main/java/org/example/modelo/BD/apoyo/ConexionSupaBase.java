@@ -2,6 +2,9 @@ package org.example.modelo.BD.apoyo;
 
 import java.sql.*;
 
+/**
+ * Conexion con SupaBase mediante jdbc
+ */
 public class ConexionSupaBase {
 
     private static final String PASSWORD = "DIVIDINGworlds2026";

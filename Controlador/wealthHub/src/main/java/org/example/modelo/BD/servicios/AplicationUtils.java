@@ -11,9 +11,7 @@ import java.util.Properties;
 @Slf4j
 public class AplicationUtils {
 
-    private static final String ENTORNO = getEntorno();
-
-    private static final String CONEXION_DESC = "gesfin";
+    private static final String ENTORNO = "application";
 
     private AplicationUtils() {
         super();
@@ -67,17 +65,6 @@ public class AplicationUtils {
             }
         }
         return result;
-    }
-
-    private static String getEntorno() {
-        if ("PRODUCCION".equalsIgnoreCase(System.getenv("ENTORNO"))) {
-            return "gesfin-prod";
-        } else if ("TEST".equalsIgnoreCase(System.getenv("ENTORNO"))) {
-            return "gesfin-test";
-        } else {
-            // En local u otros devuelve por defecto...
-            return "gesfin-test";
-        }
     }
 
 }
