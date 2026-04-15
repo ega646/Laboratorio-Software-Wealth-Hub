@@ -1,6 +1,6 @@
 # Documento de Migración — Wealth Hub
 
-**Para:** Marc Sastre (Especialista Backend)  
+**Para:** Equipo  
 **Fecha:** Abril 2026  
 **Contexto:** El equipo decidió migrar el controlador de Java/Spring Boot a TypeScript usando el cliente oficial de Supabase, aprovechando que la aplicación estaba en etapa inicial y el cambio ahorra semanas de trabajo (auth, sesiones, seguridad, realtime ya resueltos por Supabase).
 
@@ -40,8 +40,8 @@
 │   └── types/
 │       └── index.ts       ← tipos TypeScript (Activo, Perfil, Divisa)
 ├── middleware.ts           ← protege /dashboard y /profile
-├── Documentacion/         ← documentación del proyecto
-└── Modelo/                ← esquema SQL y scripts de migración
+├── 0Documentacion/        ← documentación del proyecto
+└── 0Modelo/               ← esquema SQL y scripts de migración
 ```
 
 **Supabase actúa como:** base de datos PostgreSQL + sistema de autenticación + seguridad por filas (RLS).
@@ -84,30 +84,27 @@
 ### Situación actual
 
 `DataBase.sql` y `ValoresPrueba.sql` **ya están importados en Supabase** (tablas y datos de prueba presentes).
-Los scripts en `Modelo/supabase/` son scripts de **migración incremental** que extienden ese modelo:
+Los scripts en `0Modelo/` son scripts de **migración incremental** que extienden ese modelo:
 
 | Archivo | Qué hace | Cuándo ejecutar |
 |---|---|---|
-| `Modelo/DataBase.sql` | Esquema completo original del equipo | Ya importado ✅ |
-| `Modelo/ValoresPrueba.sql` | Datos de prueba del modelo original | Ya importado ✅ |
-| `Modelo/supabase/00_tablas.sql` | ALTER TABLE + CREATE TABLE `perfiles` | Ejecutar una vez |
-| `Modelo/supabase/01_rls_y_trigger.sql` | RLS + trigger `handle_new_user` | Ejecutar una vez |
-| `Modelo/supabase/02_datos_iniciales.sql` | Colores de activos, tipos de cuenta exchange | Ejecutar una vez |
+| `0Modelo/DataBase.sql` | Esquema completo original del equipo | Ya importado ✅ |
+| `0Modelo/00_tablas.sql` | ALTER TABLE + CREATE TABLE `perfiles` + DROP TABLE `usuarios` | Ejecutar una vez |
+| `0Modelo/01_rls_y_trigger.sql` | RLS + trigger `handle_new_user` | Ejecutar una vez |
+| `0Modelo/02_datos_iniciales.sql` | Colores de activos, tipos de cuenta exchange | Ejecutar una vez |
 
 ### Cambios sobre el modelo original
 
 | Tabla / columna | Cambio |
 |---|---|
-| `usuarios` | Se conserva intacta (datos legacy). Los nuevos usuarios usan `auth.users` (Supabase Auth) |
+| `usuarios` | **Eliminada** — auth.users (Supabase) gestiona login; `perfiles` gestiona el resto |
 | Nueva tabla `perfiles` | Almacena los datos de perfil vinculados a `auth.users.id` (UUID) |
 | `activos.color` | Nueva columna `VARCHAR(7)` para el color del activo en la UI |
-| `activosposeidos.usuario_id` | Nueva columna `UUID → auth.users.id` (los nuevos registros usan esto) |
+| `activosposeidos.usuario_id` | Nueva columna `UUID → auth.users.id` (reemplaza `emailusuario`) |
 | `activosposeidos.precio_compra` | Nueva columna `NUMERIC` con el precio de adquisición |
-| `cuentas.usuario_id` | Nueva columna `UUID → auth.users.id` |
+| `cuentas.usuario_id` | Nueva columna `UUID → auth.users.id` (reemplaza `emailusuario`) |
 | `cuentas.apikey_cifrada` | Nueva columna `TEXT` para API keys de exchanges |
 | Nuevas filas en `tiposcuentas` | `BINANCE`, `COINBASE`, `IBKR` (para cuentas vinculadas) |
-
-> **Importante:** Las filas antiguas de `activosposeidos` y `cuentas` (vinculadas por `emailusuario`) tienen `usuario_id = NULL`. Las políticas RLS filtran automáticamente esas filas — ningún usuario nuevo las verá. Son datos legacy que pueden eliminarse cuando dejen de ser necesarios.
 
 ---
 
@@ -147,13 +144,13 @@ const { data, error } = await supabase
 
 ```typescript
 // INSERT
-const { data } = await supabase.from('activos').insert({ nombre: 'Bitcoin', ... }).select().single()
+const { data } = await supabase.from('activosposeidos').insert({ usuario_id: user.id, ... }).select().single()
 
 // UPDATE
-const { data } = await supabase.from('activos').update({ precio_actual: 65000 }).eq('id', id)
+const { data } = await supabase.from('perfiles').update({ nombrecompleto: 'Nuevo nombre' }).eq('id', user.id)
 
 // DELETE
-await supabase.from('activos').delete().eq('id', id)
+await supabase.from('activosposeidos').delete().eq('activocodigo', id).eq('usuario_id', user.id)
 ```
 
 ---
@@ -162,7 +159,7 @@ await supabase.from('activos').delete().eq('id', id)
 
 El código Java no tenía seguridad real. El nuevo sistema tiene dos capas:
 
-**1. Middleware (`middleware.ts`):** intercepta cada request. Si el usuario no está autenticado e intenta acceder a `/dashboard` o `/profile`, lo redirige a `/login` automáticamente.
+**1. Middleware (`middleware.ts`):** intercepta cada request. Si el usuario no está autenticado e intenta acceder a `/dashboard` o `/profile`, lo redirige a `/login` automáticamente. Usa `getSession()` para no hacer llamadas de red en cada navegación.
 
 **2. Row Level Security (RLS) en Supabase:** a nivel de base de datos, cada usuario solo puede leer y modificar sus propios datos. Aunque alguien manipule una API Route, Supabase rechaza cualquier consulta que intente acceder a datos de otro usuario.
 
@@ -171,8 +168,7 @@ El código Java no tenía seguridad real. El nuevo sistema tiene dos capas:
 ## Cómo arrancar el proyecto
 
 ```bash
-# 1. Instalar dependencias
-cd Vista
+# 1. Instalar dependencias (desde la raíz del repo)
 npm install
 
 # 2. Crear las credenciales (Jose te las comparte)
@@ -183,7 +179,11 @@ cp .env.local.example .env.local
 npm run dev
 ```
 
-Antes de arrancar, Jose (Lead) debe haber ejecutado los SQLs en Supabase. Ver checklist en `Modelo/supabase/CHECKLIST.md`.
+**Antes de arrancar**, los scripts SQL deben estar ejecutados en Supabase:
+
+1. Ir a **Supabase → SQL Editor**
+2. Ejecutar en orden: `00_tablas.sql` → `01_rls_y_trigger.sql` → `02_datos_iniciales.sql`
+3. Ir a **Authentication → Providers → Email** y desactivar "Confirm email" para desarrollo
 
 ---
 
@@ -199,13 +199,3 @@ El modelo de datos está completo. Las siguientes funcionalidades tienen la tabl
 | **Perfil completo** (idioma, teléfono) | `perfiles`, `idiomas` | Extender el formulario de edición de perfil con los campos `telefono`, `idiomacodigo`, `formatofecha`. |
 
 Cada uno es un endpoint nuevo en `app/api/` siguiendo el mismo patrón de los existentes.
-
----
-
-## Carpeta Controlador
-
-La carpeta `Controlador/` con el proyecto Java ya no es necesaria. Se puede eliminar del repositorio una vez confirmado que todo funciona. El commit de eliminación debería ser:
-
-```
-chore: remove java backend, migrated to typescript + supabase client
-```

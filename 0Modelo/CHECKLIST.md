@@ -1,4 +1,4 @@
-# Checklist de configuración manual en Supabase
+# Checklist de configuración en Supabase
 
 Todo lo que hay en esta lista **no se puede hacer desde el código** y debe hacerse desde el panel web de Supabase antes de arrancar la aplicación.
 
@@ -8,18 +8,18 @@ Todo lo que hay en esta lista **no se puede hacer desde el código** y debe hace
 
 Ir a **Supabase → SQL Editor** y ejecutar estos archivos en orden:
 
-- [ ] `00_tablas.sql` — Crea las tablas `perfiles`, `activos` y `divisas`
+- [ ] `00_tablas.sql` — Añade columnas nuevas, crea la tabla `perfiles`, elimina `usuarios`
 - [ ] `01_rls_y_trigger.sql` — Activa RLS, crea políticas de seguridad y el trigger automático de perfil
-- [ ] `02_datos_iniciales.sql` — Inserta las divisas base
+- [ ] `02_datos_iniciales.sql` — Asigna colores a los activos y añade tipos de cuenta para exchanges
 
 ---
 
 ## Paso 2 — Configurar autenticación
 
-Ir a **Supabase → Authentication → Providers**:
+Ir a **Supabase → Authentication → Providers → Email**:
 
 - [ ] Verificar que **Email** está habilitado (viene activo por defecto)
-- [ ] En **Email → Confirm email**: decidir si se requiere confirmación de email al registrarse. Para desarrollo, se recomienda **desactivarlo** para no tener que verificar correos.
+- [ ] **Desactivar "Confirm email"** para desarrollo — así no hace falta verificar el correo al registrarse
 
 ---
 
@@ -33,39 +33,29 @@ Ir a **Supabase → Settings → API**:
 
 ---
 
-## Paso 4 — Instalar dependencias en el frontend
+## Paso 4 — Instalar dependencias y arrancar
 
 Desde la terminal, en la raíz del repositorio:
 
 ```bash
 npm install
+npm run dev
 ```
-
-Los paquetes `@supabase/supabase-js` y `@supabase/ssr` ya están declarados en `package.json`, solo hay que instalarlos.
 
 ---
 
 ## Paso 5 — Verificar que todo funciona
 
-- [ ] Arrancar el servidor: `npm run dev`
 - [ ] Ir a `/register` y crear una cuenta
 - [ ] Verificar en **Supabase → Authentication → Users** que el usuario apareció
 - [ ] Verificar en **Supabase → Table Editor → perfiles** que se creó automáticamente una fila (gracias al trigger)
-- [ ] Iniciar sesión con ese usuario en `/login`
-- [ ] Confirmar que el dashboard redirige correctamente
-
----
-
-## Paso 6 — Eliminar el proyecto Java (cuando todo funcione)
-
-- [ ] Confirmar que todos los endpoints de TypeScript funcionan
-- [ ] Borrar la carpeta `Controlador/` del repositorio
-- [ ] Hacer commit: `chore: remove java backend, migrated to supabase client`
+- [ ] Iniciar sesión en `/login`
+- [ ] Confirmar que redirige al dashboard correctamente
 
 ---
 
 ## Notas importantes
 
-- El archivo `.env.local` **nunca se sube al repositorio** (ya está en `.gitignore`)
+- El archivo `.env.local` **nunca se sube al repositorio** (está en `.gitignore`)
 - Las credenciales de Supabase las gestiona Jose (Lead) y las comparte de forma segura con el equipo
 - La `anon key` es pública por diseño (solo permite lo que RLS autoriza), pero la `service_role key` es secreta y NO debe usarse en el frontend
