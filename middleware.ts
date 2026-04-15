@@ -23,14 +23,15 @@ export async function middleware(request: NextRequest) {
     }
   )
 
-  // Refrescar la sesión si expiró
-  const { data: { user } } = await supabase.auth.getUser()
+  // getSession() valida el JWT localmente (sin llamada de red) — adecuado para middleware
+  // Las API Routes usan getUser() para validación segura servidor a servidor
+  const { data: { session } } = await supabase.auth.getSession()
 
   const { pathname } = request.nextUrl
 
   // Rutas protegidas: redirigir a login si no hay sesión
   const rutasProtegidas = pathname.startsWith('/dashboard') || pathname.startsWith('/profile')
-  if (!user && rutasProtegidas) {
+  if (!session && rutasProtegidas) {
     const url = request.nextUrl.clone()
     url.pathname = '/login'
     return NextResponse.redirect(url)
@@ -38,7 +39,7 @@ export async function middleware(request: NextRequest) {
 
   // Si ya está autenticado, redirigir fuera de login/register
   const rutasAuth = pathname === '/login' || pathname === '/register'
-  if (user && rutasAuth) {
+  if (session && rutasAuth) {
     const url = request.nextUrl.clone()
     url.pathname = '/dashboard'
     return NextResponse.redirect(url)
