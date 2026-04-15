@@ -1,56 +1,44 @@
 # Wealth Hub
 
-## Requisitos del Proyecto
-
-Este proyecto es una aplicación **Next.js 15** con **TypeScript**, **Tailwind CSS** y **shadcn/ui**.
-
-### Tecnologías y Librerías Principales
-- Next.js 15 (App Router)
-- React 19
-- TypeScript
-- Tailwind CSS
-- shadcn/ui (componentes)
-- Lucide React (iconos)
-- Recharts (gráficos)
-- Next.js Image
+Aplicación de gestión de patrimonio personal. Next.js 15 + TypeScript + Supabase.
 
 ---
 
-copiar .env.local.example y renombrar a .env
-configurar url y anon key
+## Requisitos previos
 
-npm install
-npm run dev
-
+- Node.js 20 o superior — [nodejs.org](https://nodejs.org)
+- Acceso al proyecto de Supabase (credenciales proporcionadas por Jose)
 
 ---
 
-## 1. Instalación en Windows
+## Puesta en marcha
 
-### Paso 1: Instalar Node.js (recomendado versión 20 o superior)
-1. Descarga e instala Node.js desde: [https://nodejs.org](https://nodejs.org)
-2. Elige la versión **LTS** (20.x o 22.x)
-3. Después de instalar, abre **PowerShell** y verifica:
-   ```powershell
-   node -v
-   npm -v
-
-### Paso 2: Instalar dependencias del proyecto
-Abre PowerShell o Terminal dentro de la carpeta del proyecto (Vista) y ejecuta:
-
-#### Instalar todas las dependencias
+**1. Clonar e instalar dependencias**
+```bash
+git clone https://github.com/ega646/Laboratorio-Software-Wealth-Hub
+cd Laboratorio-Software-Wealth-Hub
 npm install
+```
 
-npx shadcn@latest add button card input label badge alert-dialog checkbox select separator switch table tabs accordion avatar breadcrumb calendar collapsible command context-menu dialog drawer dropdown-menu form hover-card menubar navigation-menu pagination popover progress radio-group resizable scroll-area sheet sidebar skeleton slider sonner textarea toggle-group toggle tooltip
+**2. Configurar credenciales**
+```bash
+cp .env.local.example .env.local
+```
+Abrir `.env.local` y rellenar con los valores
+```
+NEXT_PUBLIC_SUPABASE_URL=https://xxxx.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJ...
+```
 
-#### (Recomendado la primera vez) Instalación limpia
-Remove-Item -Recurse -Force node_modules, package-lock.json -ErrorAction SilentlyContinue
-
-npm install
-
-npx shadcn@latest add button card input label badge alert-dialog checkbox select separator switch table tabs accordion avatar breadcrumb calendar collapsible command context-menu dialog drawer dropdown-menu form hover-card menubar navigation-menu pagination popover progress radio-group resizable scroll-area sheet sidebar skeleton slider sonner textarea toggle-group toggle tooltip
-
-### Paso 3: Ejecutar el proyecto
+**3. Arrancar en local**
+```bash
 npm run dev
+```
+Abre [http://localhost:3000](http://localhost:3000)
 
-Abre tu navegador en: http://localhost:3000
+## Stack
+
+- Next.js 15 (App Router) + TypeScript
+- Supabase (PostgreSQL + Auth + RLS)
+- Tailwind CSS + shadcn/ui
+- Recharts
