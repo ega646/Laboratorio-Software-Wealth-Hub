@@ -179,12 +179,6 @@ cp .env.local.example .env.local
 npm run dev
 ```
 
-**Antes de arrancar**, los scripts SQL deben estar ejecutados en Supabase:
-
-1. Ir a **Supabase → SQL Editor**
-2. Ejecutar en orden: `00_tablas.sql` → `01_rls_y_trigger.sql` → `02_datos_iniciales.sql`
-3. Ir a **Authentication → Providers → Email** y desactivar "Confirm email" para desarrollo
-
 ---
 
 ## Qué queda por hacer (pendiente de implementar)
