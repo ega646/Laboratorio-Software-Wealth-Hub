@@ -36,6 +36,7 @@ export interface Activo {
   tipocodigo: string
   divisacodigo: string
   color: string
+  simbolo: string | null
   // joins opcionales
   tiposactivos?: TipoActivo
   divisas?: Divisa

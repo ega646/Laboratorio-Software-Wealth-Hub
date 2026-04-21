@@ -42,3 +42,10 @@ Abre [http://localhost:3000](http://localhost:3000)
 - Supabase (PostgreSQL + Auth + RLS)
 - Tailwind CSS + shadcn/ui
 - Recharts
+
+---
+
+## Usuario de prueba
+
+mail= prueba@gmail.com
+contraseña= asdasd

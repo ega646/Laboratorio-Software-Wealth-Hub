@@ -26,6 +26,7 @@ export async function GET() {
         tipocodigo,
         divisacodigo,
         color,
+        simbolo,
         tiposactivos ( codigo, descripcion, riesgocodigo )
       )
     `)

@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Header } from "@/components/Header";
-import { TrendingUp, TrendingDown, Wallet, PieChart as PieIcon, ArrowUpRight, ArrowDownRight } from "lucide-react";
+import { TrendingUp, TrendingDown, Wallet, PieChart as PieIcon, ArrowUpRight, ArrowDownRight, RefreshCw } from "lucide-react";
 import { LineChart, Line, PieChart as RechartsPie, Pie, Cell, ResponsiveContainer, XAxis, YAxis, Tooltip, CartesianGrid } from "recharts";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -23,8 +23,12 @@ export default function Dashboard() {
   const [activos, setActivos] = useState<ActivoPoseidoConPrecio[]>([]);
   const [portfolio, setPortfolio] = useState<ResumenPortfolio | null>(null);
   const [loading, setLoading] = useState(true);
+  const [actualizando, setActualizando] = useState(false);
+  const [mensajePrecios, setMensajePrecios] = useState<{ tipo: 'ok' | 'error'; texto: string } | null>(null);
+  const [refreshKey, setRefreshKey] = useState(0);
 
   useEffect(() => {
+    setLoading(true);
     Promise.all([
       fetch('/api/activos').then(r => r.json()),
       fetch('/api/portfolio').then(r => r.json()),
@@ -33,7 +37,24 @@ export default function Dashboard() {
       setPortfolio(portfolioData);
       setLoading(false);
     }).catch(() => setLoading(false));
-  }, []);
+  }, [refreshKey]);
+
+  async function handleActualizarPrecios() {
+    setActualizando(true);
+    setMensajePrecios(null);
+    try {
+      const resp = await fetch('/api/precios', { method: 'POST' });
+      const data = await resp.json();
+      if (!resp.ok) throw new Error(data.error ?? 'Error desconocido');
+      setMensajePrecios({ tipo: 'ok', texto: `${data.actualizados} precio${data.actualizados !== 1 ? 's' : ''} actualizado${data.actualizados !== 1 ? 's' : ''}` });
+      setRefreshKey(k => k + 1);
+    } catch (e) {
+      setMensajePrecios({ tipo: 'error', texto: (e as Error).message });
+    } finally {
+      setActualizando(false);
+      setTimeout(() => setMensajePrecios(null), 4000);
+    }
+  }
 
   const tipoLabel: Record<string, string> = {
     cripto: 'Cripto', accion: 'Acción', etf: 'ETF', efectivo: 'Efectivo',
@@ -52,9 +73,27 @@ export default function Dashboard() {
       <Header />
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        <div className="mb-12">
-          <h1 className="text-5xl font-bold tracking-tight">Tu cartera</h1>
-          <p className="text-xl text-zinc-400 mt-3">Bienvenido de nuevo. Aquí tienes el resumen de tu patrimonio.</p>
+        <div className="mb-12 flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+          <div>
+            <h1 className="text-5xl font-bold tracking-tight">Tu cartera</h1>
+            <p className="text-xl text-zinc-400 mt-3">Bienvenido de nuevo. Aquí tienes el resumen de tu patrimonio.</p>
+          </div>
+          <div className="flex items-center gap-3 flex-shrink-0">
+            {mensajePrecios && (
+              <span className={`text-sm ${mensajePrecios.tipo === 'ok' ? 'text-emerald-400' : 'text-red-400'}`}>
+                {mensajePrecios.texto}
+              </span>
+            )}
+            <Button
+              onClick={handleActualizarPrecios}
+              disabled={actualizando}
+              variant="outline"
+              className="gap-2 border-white/10 bg-zinc-900 hover:bg-zinc-800"
+            >
+              <RefreshCw className={`w-4 h-4 ${actualizando ? 'animate-spin' : ''}`} />
+              {actualizando ? 'Actualizando...' : 'Actualizar precios'}
+            </Button>
+          </div>
         </div>
 
         {/* Net Worth */}

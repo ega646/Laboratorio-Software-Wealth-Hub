@@ -1,39 +1,37 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { Header } from "@/components/Header";
-import { ArrowLeft, TrendingUp, TrendingDown, DollarSign, Activity, Calendar, Percent } from "lucide-react";
-import { AreaChart, Area, ResponsiveContainer, XAxis, YAxis, Tooltip, CartesianGrid } from "recharts";
+import { PriceChart } from "@/components/PriceChart";
+import {
+  ArrowLeft, TrendingUp, TrendingDown, DollarSign,
+  Activity, Calendar, Percent, Trash2,
+} from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { useState as useToggle } from "react";
-import type { Activo } from "@/lib/types";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel,
+  AlertDialogContent, AlertDialogDescription, AlertDialogFooter,
+  AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import type { ActivoPoseidoConPrecio, Activo, TipoActivo } from "@/lib/types";
 
-// Historial mock hasta integrar APIs externas de precios históricos (Fase 5)
-const historicalMock = [
-  { date: '1 Mar', price: 0 }, { date: '3 Mar', price: 0 },
-  { date: '5 Mar', price: 0 }, { date: '7 Mar', price: 0 },
-  { date: '9 Mar', price: 0 }, { date: '11 Mar', price: 0 },
-  { date: '13 Mar', price: 0 }, { date: '15 Mar', price: 0 },
-  { date: '17 Mar', price: 0 }, { date: '19 Mar', price: 0 },
-  { date: '21 Mar', price: 0 }, { date: '23 Mar', price: 0 },
-  { date: '25 Mar', price: 0 }, { date: '27 Mar', price: 0 },
-  { date: '29 Mar', price: 0 },
-];
-
-const tipoLabel: Record<string, string> = {
-  cripto: 'Criptomoneda', accion: 'Acción', etf: 'ETF', efectivo: 'Efectivo',
-};
+type ActivoDetalle = ActivoPoseidoConPrecio & {
+  activos: Activo & { tiposactivos?: TipoActivo }
+  historico: { valor: number; fecha: string }[]
+}
 
 export default function DetallesInversion() {
   const params = useParams();
+  const router = useRouter();
   const id = params.id as string;
-  const [activo, setActivo] = useState<Activo | null>(null);
+  const [activo, setActivo] = useState<ActivoDetalle | null>(null);
   const [loading, setLoading] = useState(true);
-  const [showPersonalHistory, setShowPersonalHistory] = useState(true);
+  const [eliminando, setEliminando] = useState(false);
 
   useEffect(() => {
     fetch(`/api/activos/${id}`)
@@ -44,6 +42,16 @@ export default function DetallesInversion() {
       })
       .catch(() => setLoading(false));
   }, [id]);
+
+  async function handleEliminar() {
+    setEliminando(true);
+    try {
+      const resp = await fetch(`/api/activos/${id}`, { method: 'DELETE' });
+      if (resp.ok) router.push('/dashboard');
+    } finally {
+      setEliminando(false);
+    }
+  }
 
   if (loading) {
     return (
@@ -64,13 +72,18 @@ export default function DetallesInversion() {
     );
   }
 
-  const valorTotal = activo.cantidad * activo.precio_actual;
-  const ganancia = valorTotal - activo.cantidad * activo.precio_compra;
+  const info = activo.activos
+  const nombre = info?.descripcion ?? String(activo.activocodigo)
+  const simbolo = info?.simbolo ?? nombre.substring(0, 4).toUpperCase()
+  const color = info?.color ?? '#6366f1'
+  const tipoLabel = info?.tiposactivos?.descripcion ?? info?.tipocodigo ?? '—'
+  const divisaSimbolo = info?.divisacodigo === 'EUR' ? '€' : info?.divisacodigo === 'GBP' ? '£' : '$'
+
+  const valorTotal = activo.cantidad * activo.precio_actual
+  const ganancia = valorTotal - activo.cantidad * activo.precio_compra
   const gananciaPercent = activo.precio_compra > 0
     ? ((activo.precio_actual - activo.precio_compra) / activo.precio_compra) * 100
-    : 0;
-
-  const chartData = historicalMock.map(p => ({ ...p, price: activo.precio_actual }));
+    : 0
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-zinc-950 via-zinc-900 to-black text-white">
@@ -94,33 +107,67 @@ export default function DetallesInversion() {
             <div className="flex flex-col lg:flex-row gap-10 items-start justify-between">
               <div className="flex items-center gap-7">
                 <div
-                  className="w-24 h-24 rounded-3xl flex items-center justify-center text-white text-5xl font-bold"
-                  style={{ backgroundColor: activo.color }}
+                  className="w-24 h-24 rounded-3xl flex items-center justify-center text-white text-3xl font-bold"
+                  style={{ backgroundColor: color }}
                 >
-                  {activo.ticker.substring(0, 2)}
+                  {simbolo.substring(0, 3)}
                 </div>
                 <div>
-                  <h1 className="text-6xl font-bold tracking-tight">{activo.nombre}</h1>
+                  <h1 className="text-6xl font-bold tracking-tight">{nombre}</h1>
                   <div className="flex items-center gap-4 mt-4">
-                    <span className="text-3xl text-zinc-400">{activo.ticker}</span>
+                    <span className="text-3xl text-zinc-400">{simbolo}</span>
                     <Badge className="bg-zinc-800/70 text-zinc-400 text-xl px-6 py-2 border border-white/5">
-                      {tipoLabel[activo.tipo] ?? activo.tipo}
+                      {tipoLabel}
                     </Badge>
                   </div>
                 </div>
               </div>
 
-              <div className="text-right">
-                <p className="text-zinc-500 text-xl">Precio Actual</p>
-                <p className="text-6xl font-bold mt-3 tracking-tighter text-white">
-                  ${activo.precio_actual.toLocaleString('es-ES')}
-                </p>
-                <div className={`flex items-center justify-end gap-3 mt-6 text-2xl ${gananciaPercent >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
-                  {gananciaPercent >= 0 ? <TrendingUp className="w-7 h-7" /> : <TrendingDown className="w-7 h-7" />}
-                  <span>
-                    {gananciaPercent >= 0 ? '+' : ''}{Math.round(gananciaPercent * 100) / 100}% desde compra
-                  </span>
+              <div className="flex flex-col items-end gap-4">
+                <div className="text-right">
+                  <p className="text-zinc-500 text-xl">Precio Actual</p>
+                  <p className="text-6xl font-bold mt-3 tracking-tighter text-white">
+                    {divisaSimbolo}{activo.precio_actual.toLocaleString('es-ES')}
+                  </p>
+                  <div className={`flex items-center justify-end gap-3 mt-6 text-2xl ${gananciaPercent >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+                    {gananciaPercent >= 0 ? <TrendingUp className="w-7 h-7" /> : <TrendingDown className="w-7 h-7" />}
+                    <span>
+                      {gananciaPercent >= 0 ? '+' : ''}{Math.round(gananciaPercent * 100) / 100}% desde compra
+                    </span>
+                  </div>
                 </div>
+
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className="gap-2 border-red-900/50 text-red-400 hover:bg-red-950/40 hover:text-red-300"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                      Eliminar de mi cartera
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent className="bg-zinc-900 border border-white/10 text-white">
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>¿Eliminar {nombre}?</AlertDialogTitle>
+                      <AlertDialogDescription className="text-zinc-400">
+                        Se borrará esta posición de tu cartera. El activo seguirá disponible en el catálogo.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel className="bg-zinc-800 border-white/10 text-white hover:bg-zinc-700">
+                        Cancelar
+                      </AlertDialogCancel>
+                      <AlertDialogAction
+                        onClick={handleEliminar}
+                        disabled={eliminando}
+                        className="bg-red-600 hover:bg-red-700 text-white"
+                      >
+                        {eliminando ? 'Eliminando...' : 'Confirmar'}
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
               </div>
             </div>
           </CardContent>
@@ -140,7 +187,8 @@ export default function DetallesInversion() {
                   <span className="text-sm font-medium">Cantidad Poseída</span>
                 </div>
                 <p className="text-4xl font-semibold text-white">
-                  {activo.cantidad} <span className="text-2xl text-zinc-500">{activo.ticker}</span>
+                  {activo.cantidad.toLocaleString('es-ES')}{' '}
+                  <span className="text-2xl text-zinc-500">{simbolo}</span>
                 </p>
               </div>
 
@@ -150,7 +198,7 @@ export default function DetallesInversion() {
                   <span className="text-sm font-medium">Valor Total Actual</span>
                 </div>
                 <p className="text-4xl font-semibold text-white">
-                  ${valorTotal.toLocaleString('es-ES')}
+                  {divisaSimbolo}{valorTotal.toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                 </p>
               </div>
 
@@ -160,7 +208,7 @@ export default function DetallesInversion() {
                   <span className="text-sm font-medium">Precio Promedio de Compra</span>
                 </div>
                 <p className="text-4xl font-semibold text-white">
-                  ${activo.precio_compra.toLocaleString('es-ES')}
+                  {divisaSimbolo}{activo.precio_compra.toLocaleString('es-ES')}
                 </p>
               </div>
 
@@ -170,7 +218,7 @@ export default function DetallesInversion() {
                   <span className="text-sm font-medium">Ganancia / Pérdida</span>
                 </div>
                 <p className={`text-4xl font-semibold ${ganancia >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
-                  {ganancia >= 0 ? '+' : ''}${ganancia.toLocaleString('es-ES')}
+                  {ganancia >= 0 ? '+' : ''}{divisaSimbolo}{Math.abs(ganancia).toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                 </p>
                 <p className={`text-xl ${ganancia >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
                   ({Math.round(gananciaPercent * 100) / 100}%)
@@ -182,41 +230,27 @@ export default function DetallesInversion() {
 
         {/* Gráfico */}
         <Card className="bg-zinc-900/70 border border-white/5">
-          <CardHeader className="pb-6 flex flex-row items-center justify-between">
-            <div>
-              <CardTitle className="text-3xl">Precio del Mercado</CardTitle>
-              <CardDescription>
-                Historial de precios en tiempo real — disponible en Fase 5 (integración de APIs externas)
-              </CardDescription>
-            </div>
+          <CardHeader className="pb-6">
+            <CardTitle className="text-3xl">Evolución del Precio</CardTitle>
+            <CardDescription>
+              {activo.historico.length > 0
+                ? `Últimos ${activo.historico.length} días — datos reales de mercado`
+                : 'Sin datos históricos disponibles. Actualiza los precios desde el dashboard.'}
+            </CardDescription>
           </CardHeader>
-
           <CardContent className="pt-4 pb-8">
-            <ResponsiveContainer width="100%" height={440}>
-              <AreaChart data={chartData}>
-                <defs>
-                  <linearGradient id="colorPrice" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#60a5fa" stopOpacity={0.35} />
-                    <stop offset="95%" stopColor="#60a5fa" stopOpacity={0.02} />
-                  </linearGradient>
-                </defs>
-                <CartesianGrid strokeDasharray="3 3" stroke="#27272a" />
-                <XAxis dataKey="date" stroke="#52525b" />
-                <YAxis stroke="#52525b" tickFormatter={(v) => `$${(v / 1000).toFixed(0)}k`} />
-                <Tooltip
-                  contentStyle={{ backgroundColor: '#18181b', border: 'none', borderRadius: '14px', color: '#e4e4e7' }}
-                  formatter={(value: number) => [`$${value.toLocaleString()}`, 'Precio']}
-                />
-                <Area
-                  type="natural"
-                  dataKey="price"
-                  stroke="#60a5fa"
-                  strokeWidth={4}
-                  fill="url(#colorPrice)"
-                  dot={{ fill: '#60a5fa', r: 5, stroke: '#18181b', strokeWidth: 3 }}
-                />
-              </AreaChart>
-            </ResponsiveContainer>
+            {activo.historico.length > 0 ? (
+              <PriceChart
+                data={activo.historico}
+                color={color}
+                height={440}
+                currency={divisaSimbolo}
+              />
+            ) : (
+              <div className="flex items-center justify-center h-48 text-zinc-500">
+                Sin datos históricos
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>
