@@ -10,6 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import type { ActivoPoseidoConPrecio, ResumenPortfolio } from "@/lib/types";
+import { createClient } from "@/lib/supabase/client"; 
 
 const historicalData = [
   { month: 'Ene', value: 85000 }, { month: 'Feb', value: 88500 },
@@ -21,20 +22,42 @@ const historicalData = [
 export default function Dashboard() {
   const [activos, setActivos] = useState<ActivoPoseidoConPrecio[]>([]);
   const [portfolio, setPortfolio] = useState<ResumenPortfolio | null>(null);
+  const [userName, setUserName] = useState<string>("Usuario"); // Nuevo estado para el nombre
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    Promise.all([
-      fetch('/api/activos').then(r => r.json()),
-      fetch('/api/portfolio').then(r => r.json()),
-    ]).then(([activosData, portfolioData]) => {
-      setActivos(Array.isArray(activosData) ? activosData : []);
-      setPortfolio(portfolioData);
-      setLoading(false);
-    }).catch(() => setLoading(false));
+    const fetchData = async () => {
+      const supabase = createClient();
+      
+      // Intentamos obtener el usuario actual
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        // Prioridad: Nombre completo > Email
+        const name = user.user_metadata?.full_name || user.email?.split('@')[0] || "Inversor";
+        setUserName(name);
+      }
+
+      try {
+        const [activosRes, portfolioRes] = await Promise.all([
+          fetch('/api/activos'),
+          fetch('/api/portfolio')
+        ]);
+        
+        const activosData = await activosRes.json();
+        const portfolioData = await portfolioRes.json();
+
+        setActivos(Array.isArray(activosData) ? activosData : []);
+        setPortfolio(portfolioData);
+      } catch (error) {
+        console.error("Error cargando datos:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
   }, []);
 
-  // [UC04] Lógica de respaldo: Si la API de portfolio no carga, calculamos el total a mano
   const patrimonioCalculado = activos.reduce((acc, curr) => acc + (curr.valor_total || 0), 0);
   const totalDisplay = portfolio?.patrimonio_total ?? patrimonioCalculado;
 
@@ -51,12 +74,23 @@ export default function Dashboard() {
       <Header />
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        <div className="mb-12">
-          <h1 className="text-5xl font-bold tracking-tight">Tu cartera</h1>
-          <p className="text-xl text-zinc-400 mt-3">Resumen de activos de Iker Molina.</p>
+        <div className="mb-12 flex justify-between items-end">
+          <div>
+            <h1 className="text-5xl font-bold tracking-tight">Tu cartera</h1>
+            {/* NOMBRE DINÁMICO AQUÍ */}
+            <p className="text-xl text-zinc-400 mt-3">
+              Resumen de activos de <span className="text-white font-medium">{userName}</span>.
+            </p>
+          </div>
+          
+          <Button asChild className="bg-violet-600 hover:bg-violet-700 text-white px-8 py-6 rounded-2xl text-lg font-bold shadow-lg shadow-violet-500/20 transition-all hover:scale-105">
+            <Link href="/dashboard/nuevo-activo">
+              + Añadir Inversión
+            </Link>
+          </Button>
         </div>
 
-        {/* Net Worth - [UC04] Mostrar Patrimonio Total Destacado */}
+        {/* ... Resto de la Card de Net Worth y Tabla (se mantiene igual) ... */}
         <Card className="bg-gradient-to-br from-zinc-900 to-zinc-800 border border-white/10 mb-12 shadow-2xl">
           <CardContent className="p-9">
             <div className="flex flex-col md:flex-row justify-between items-start gap-8">
@@ -65,23 +99,12 @@ export default function Dashboard() {
                 <h2 className="text-6xl font-bold tracking-tighter mt-3">
                   {totalDisplay.toLocaleString('es-ES', { style: 'currency', currency: 'EUR' })}
                 </h2>
-                {portfolio?.mejor_activo && (
-                  <div className="flex items-center gap-3 mt-5 text-emerald-400">
-                    <TrendingUp className="w-5 h-5" />
-                    <span className="text-xl font-medium">
-                      Mejor activo: {portfolio.mejor_activo.descripcion} (+{portfolio.mejor_activo.rentabilidad_pct}%)
-                    </span>
-                  </div>
-                )}
               </div>
               <Wallet className="w-20 h-20 text-violet-400 flex-shrink-0 opacity-50" />
             </div>
           </CardContent>
         </Card>
 
-        {/* Gráficos y Tablas omitidos por brevedad, pero usa la misma lógica de seguridad: */}
-        {/* Asegúrate de usar siempre ?.toLocaleString() y ?? 0 */}
-        
         <Card className="bg-zinc-900 border border-white/10">
           <CardHeader className="pb-6">
             <CardTitle className="text-2xl">Mis Inversiones</CardTitle>
@@ -101,13 +124,13 @@ export default function Dashboard() {
                 <TableBody>
                   {activos.map((pos, index) => (
                     <TableRow key={`${pos.activocodigo}-${index}`} className="border-b border-white/10">
-                      <TableCell className="font-medium">
+                      <TableCell className="font-medium text-lg">
                         {(pos.activos as any)?.descripcion ?? `Activo #${pos.activocodigo}`}
                       </TableCell>
-                      <TableCell className="text-right">
+                      <TableCell className="text-right text-lg">
                         {pos.cantidad?.toLocaleString() ?? "0"}
                       </TableCell>
-                      <TableCell className="text-right font-bold">
+                      <TableCell className="text-right font-bold text-lg">
                         {(pos.valor_total ?? 0).toLocaleString('es-ES', { style: 'currency', currency: 'EUR' })}
                       </TableCell>
                     </TableRow>
