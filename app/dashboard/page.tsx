@@ -3,7 +3,8 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Header } from "@/components/Header";
-import { TrendingUp, Wallet, PieChart as PieIcon, ArrowUpRight, ArrowDownRight } from "lucide-react";
+// Añadimos Trash2 a los iconos
+import { TrendingUp, Wallet, Trash2, PieChart as PieIcon, ArrowUpRight, ArrowDownRight } from "lucide-react";
 import { LineChart, Line, PieChart as RechartsPie, Pie, Cell, ResponsiveContainer, XAxis, YAxis, Tooltip, CartesianGrid } from "recharts";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -12,27 +13,18 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import type { ActivoPoseidoConPrecio, ResumenPortfolio } from "@/lib/types";
 import { createClient } from "@/lib/supabase/client"; 
 
-const historicalData = [
-  { month: 'Ene', value: 85000 }, { month: 'Feb', value: 88500 },
-  { month: 'Mar', value: 92000 }, { month: 'Abr', value: 89500 },
-  { month: 'May', value: 95000 }, { month: 'Jun', value: 98000 },
-  { month: 'Jul', value: 102000 }, { month: 'Ago', value: 105437 },
-];
-
 export default function Dashboard() {
   const [activos, setActivos] = useState<ActivoPoseidoConPrecio[]>([]);
   const [portfolio, setPortfolio] = useState<ResumenPortfolio | null>(null);
-  const [userName, setUserName] = useState<string>("Usuario"); // Nuevo estado para el nombre
+  const [userName, setUserName] = useState<string>("Usuario");
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchData = async () => {
       const supabase = createClient();
       
-      // Intentamos obtener el usuario actual
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
-        // Prioridad: Nombre completo > Email
         const name = user.user_metadata?.full_name || user.email?.split('@')[0] || "Inversor";
         setUserName(name);
       }
@@ -58,6 +50,23 @@ export default function Dashboard() {
     fetchData();
   }, []);
 
+  // --- NUEVA FUNCIÓN PARA ELIMINAR ---
+  const eliminarActivo = async (codigo: number) => {
+    if (!confirm("¿Seguro que quieres eliminar este activo de tu cartera?")) return;
+
+    try {
+      const res = await fetch(`/api/activos/${codigo}`, { method: 'DELETE' });
+      if (res.ok) {
+        // Actualizamos el estado local filtrando el activo borrado
+        setActivos(prev => prev.filter(a => a.activocodigo !== codigo));
+      } else {
+        alert("No se pudo eliminar el activo");
+      }
+    } catch (err) {
+      console.error("Fallo al borrar:", err);
+    }
+  };
+
   const patrimonioCalculado = activos.reduce((acc, curr) => acc + (curr.valor_total || 0), 0);
   const totalDisplay = portfolio?.patrimonio_total ?? patrimonioCalculado;
 
@@ -77,7 +86,6 @@ export default function Dashboard() {
         <div className="mb-12 flex justify-between items-end">
           <div>
             <h1 className="text-5xl font-bold tracking-tight">Tu cartera</h1>
-            {/* NOMBRE DINÁMICO AQUÍ */}
             <p className="text-xl text-zinc-400 mt-3">
               Resumen de activos de <span className="text-white font-medium">{userName}</span>.
             </p>
@@ -90,7 +98,6 @@ export default function Dashboard() {
           </Button>
         </div>
 
-        {/* ... Resto de la Card de Net Worth y Tabla (se mantiene igual) ... */}
         <Card className="bg-gradient-to-br from-zinc-900 to-zinc-800 border border-white/10 mb-12 shadow-2xl">
           <CardContent className="p-9">
             <div className="flex flex-col md:flex-row justify-between items-start gap-8">
@@ -119,11 +126,13 @@ export default function Dashboard() {
                     <TableHead className="text-zinc-400">Activo</TableHead>
                     <TableHead className="text-right text-zinc-400">Cantidad</TableHead>
                     <TableHead className="text-right text-zinc-400">Valor Total</TableHead>
+                    {/* CABECERA NUEVA */}
+                    <TableHead className="text-right text-zinc-400 w-[80px]">Acción</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {activos.map((pos, index) => (
-                    <TableRow key={`${pos.activocodigo}-${index}`} className="border-b border-white/10">
+                    <TableRow key={`${pos.activocodigo}-${index}`} className="border-b border-white/10 group">
                       <TableCell className="font-medium text-lg">
                         {(pos.activos as any)?.descripcion ?? `Activo #${pos.activocodigo}`}
                       </TableCell>
@@ -132,6 +141,17 @@ export default function Dashboard() {
                       </TableCell>
                       <TableCell className="text-right font-bold text-lg">
                         {(pos.valor_total ?? 0).toLocaleString('es-ES', { style: 'currency', currency: 'EUR' })}
+                      </TableCell>
+                      {/* BOTÓN DE ELIMINAR NUEVO */}
+                      <TableCell className="text-right">
+                        <Button 
+                          variant="ghost" 
+                          size="icon"
+                          onClick={() => eliminarActivo(pos.activocodigo)}
+                          className="text-zinc-500 hover:text-red-500 hover:bg-red-500/10 transition-all rounded-full"
+                        >
+                          <Trash2 className="w-5 h-5" />
+                        </Button>
                       </TableCell>
                     </TableRow>
                   ))}
