@@ -99,6 +99,7 @@ export interface ActivoPoseido {
 // Vista enriquecida que combina ActivoPoseido + precio actual desde valorhistoricoactivo
 export interface ActivoPoseidoConPrecio extends ActivoPoseido {
   precio_actual: number
+  simbolo_divisa: string
   valor_total: number
   rentabilidad_pct: number
 }
@@ -113,7 +114,8 @@ export type NuevaPosition = {
 
 // Resumen del portfolio calculado por GET /api/portfolio
 export interface ResumenPortfolio {
-  patrimonio_total: number
+  simboloDivisa: string
+  patrimonio_total: number,
   distribucion: {
     nombre: string
     valor: number

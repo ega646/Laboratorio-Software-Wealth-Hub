@@ -23,11 +23,11 @@ export async function GET() {
       activos (
         descripcion,
         tipocodigo,
-        divisacodigo,
+        divisacodigo (codigo, simbolo_divisa),
         color,
         tiposactivos ( descripcion )
       ),
-      perfiles ( divisabasecodigo )
+      perfiles ( divisabasecodigo (codigo, simbolo_divisa)) )
     `)
     .eq('usuario_id', user.id)
   console.log('Usuario recibido')
@@ -45,8 +45,9 @@ export async function GET() {
   }
 
   // 1.5 separamos la divisa que desea el cliente
-const perfil = posiciones[0].perfiles as any
-const divisaFinal = perfil?.divisabasecodigo
+  const perfil = posiciones[0].perfiles as any
+  const divisaFinal = perfil?.divisabasecodigo?.codigo
+  const simboloDivisa = perfil?.divisabasecodigo?.simbolo_divisa
 
   // 2. Precio actual de cada activo (último valor histórico)
   const codigos = posiciones.map(p => p.activocodigo)
@@ -58,7 +59,7 @@ const divisaFinal = perfil?.divisabasecodigo
                   )`)
     .in('activocodigo', codigos)
     .order('fecha', { ascending: false })
-console.log('AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA')
+
 const precioActual: Record<number, number> = {}
 
 for (const h of historicos ?? []) {
@@ -84,8 +85,6 @@ for (const h of historicos ?? []) {
   }
 }
 
-console.log('AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA')
-
   // 3. Patrimonio total
   const patrimonio_total = posiciones.reduce((sum, p) => {
     const precio = precioActual[p.activocodigo] ?? 0
@@ -105,7 +104,7 @@ console.log('AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA')
     if (!porTipo[tipoDesc]) porTipo[tipoDesc] = { valor: 0, color }
     porTipo[tipoDesc].valor += valor
   }
-console.log('AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA')
+
   const distribucion = Object.entries(porTipo).map(([nombre, { valor, color }]) => ({
     nombre,
     valor: Math.round(valor * 100) / 100,
@@ -133,6 +132,7 @@ console.log('AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA')
     : null
 
   return NextResponse.json({
+    simboloDivisa,
     patrimonio_total: Math.round(patrimonio_total * 100) / 100,
     distribucion,
     mejor_activo,

@@ -103,7 +103,7 @@ export default function Dashboard() {
               <div>
                 <p className="text-zinc-400 text-base tracking-wide">PATRIMONIO TOTAL</p>
                 <h2 className="text-6xl font-bold tracking-tighter mt-3">
-                  ${(portfolio?.patrimonio_total ?? 0).toLocaleString('es-ES')}
+                  {(portfolio?.simboloDivisa)}{(portfolio?.patrimonio_total ?? 0).toLocaleString('es-ES')}
                 </h2>
                 {portfolio?.mejor_activo && (
                   <div className="flex items-center gap-3 mt-5 text-emerald-400">
@@ -203,7 +203,7 @@ export default function Dashboard() {
                 <div>
                   <p className="text-zinc-400 text-sm">Patrimonio Total</p>
                   <p className="text-4xl font-bold mt-4">
-                    ${(portfolio?.patrimonio_total ?? 0).toLocaleString('es-ES')}
+                    {(portfolio?.simboloDivisa)}{(portfolio?.patrimonio_total ?? 0).toLocaleString('es-ES')}
                   </p>
                 </div>
                 <Wallet className="w-10 h-10 text-violet-500/30" />
@@ -307,7 +307,7 @@ export default function Dashboard() {
                         </TableCell>
                         <TableCell className="text-right font-medium text-lg">{pos.cantidad.toLocaleString()}</TableCell>
                         <TableCell className="text-right text-lg">
-                          ${pos.precio_actual.toLocaleString('es-ES', { minimumFractionDigits: 2 })}
+                          {(pos.simbolo_divisa)}{pos.precio_actual.toLocaleString('es-ES', { minimumFractionDigits: 2 })}
                         </TableCell>
                         <TableCell className="text-right">
                           <div className={`flex items-center justify-end gap-1.5 text-lg ${pos.rentabilidad_pct >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
@@ -316,7 +316,7 @@ export default function Dashboard() {
                           </div>
                         </TableCell>
                         <TableCell className="text-right font-semibold text-lg">
-                          ${pos.valor_total.toLocaleString('es-ES')}
+                          {(pos.simbolo_divisa)}{pos.valor_total.toLocaleString('es-ES')}
                         </TableCell>
                         <TableCell className="text-right">
                           <Button variant="link" size="sm" asChild className="text-blue-400 hover:text-blue-300">

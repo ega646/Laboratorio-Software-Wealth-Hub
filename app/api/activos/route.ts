@@ -24,7 +24,7 @@ export async function GET() {
         codigo,
         descripcion,
         tipocodigo,
-        divisacodigo,
+        divisas (codigo, simbolo_divisa),
         color,
         simbolo,
         tiposactivos ( codigo, descripcion, riesgocodigo )
@@ -52,16 +52,19 @@ export async function GET() {
     }
   }
 
+
   // 3. Combinar y calcular valores derivados
   const resultado: ActivoPoseidoConPrecio[] = posiciones.map(p => {
     const precio = precioActual[p.activocodigo] ?? 0
     const valorTotal = p.cantidad * precio
+    const simbolo    = p.activos?.divisas?.simbolo_divisa
     const rentabilidad = p.precio_compra > 0
       ? ((precio - p.precio_compra) / p.precio_compra) * 100
       : 0
 
     return {
       ...p,
+      simbolo_divisa: simbolo,
       precio_actual: precio,
       valor_total: Math.round(valorTotal * 100) / 100,
       rentabilidad_pct: Math.round(rentabilidad * 100) / 100,
