@@ -16,6 +16,8 @@ import type { ActivoPoseidoConPrecio, ResumenPortfolio, HistoricalDataGlobal } f
 export default function Dashboard() {
   const [activos, setActivos] = useState<ActivoPoseidoConPrecio[]>([]);
   const [portfolio, setPortfolio] = useState<ResumenPortfolio | null>(null);
+  const [divisa, setDivisa]           = useState('EUR')
+  const [fechaInicio, setFechaInicio] = useState('2026-04-01')
   const [historicalData, setHistoricalData] = useState<HistoricalDataGlobal | null>(null);
   const [loading, setLoading] = useState(true);
   const [actualizando, setActualizando] = useState(false);
@@ -27,14 +29,14 @@ export default function Dashboard() {
     Promise.all([
       fetch('/api/activos').then(r => r.json()),
       fetch('/api/portfolio').then(r => r.json()),
-      fetch('/api/historicalData?divisa=EUR&fecha=2026-04-01').then(r => r.json()),
+      fetch(`/api/historicalData?divisa=${divisa}&fecha=${fechaInicio}`).then(r => r.json()),
     ]).then(([activosData, portfolioData, historicalData]) => {
       setActivos(Array.isArray(activosData) ? activosData : []);
       setPortfolio(portfolioData);
       setHistoricalData(Array.isArray(historicalData) ? historicalData : [])
       setLoading(false);
     }).catch(() => setLoading(false));
-  }, [refreshKey]);
+}, [refreshKey, divisa, fechaInicio])
 
   async function handleActualizarPrecios() {
     setActualizando(true);
@@ -116,6 +118,26 @@ export default function Dashboard() {
           </CardContent>
         </Card>
 
+        <div className="flex gap-4 mb-4">
+          {/* Selector de divisa */}
+          <select
+            value={divisa}
+            onChange={(e) => setDivisa(e.target.value)}
+            className="bg-zinc-800 border border-zinc-700 rounded px-3 py-2"
+          >
+            <option value="EUR">EUR €</option>
+            <option value="USD">USD $</option>
+            <option value="GBP">GBP ₤</option>
+          </select>
+
+          {/* Selector de fecha */}
+          <input
+            type="date"
+            value={fechaInicio}
+            onChange={(e) => setFechaInicio(e.target.value)}
+            className="bg-zinc-800 border border-zinc-700 rounded px-3 py-2"
+          />
+        </div>
         {/* Charts Row */}
         <div className="grid lg:grid-cols-2 gap-8 mb-12">
           {/* Historical Performance */}
