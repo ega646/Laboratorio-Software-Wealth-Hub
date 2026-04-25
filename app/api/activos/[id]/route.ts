@@ -50,7 +50,6 @@ export async function GET(
     ? ((precioActual - posicion.precio_compra) / posicion.precio_compra) * 100
     : 0
 
-  // DEVOLVEMOS EL JSON SIN CASTEOS COMPLEJOS QUE DEN ERROR
   return NextResponse.json({
     usuario_id: posicion.usuario_id,
     activocodigo: posicion.activocodigo,
@@ -70,20 +69,46 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const supabase = await createClient()
+  
+  // 1. [UC08] Verificar autenticación
   const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
+  if (!user) {
+    return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
+  }
 
+  // 2. Extraer y validar el ID
   const { id } = await params
   const activocodigo = parseInt(id)
+  if (isNaN(activocodigo)) {
+    return NextResponse.json({ error: 'ID inválido' }, { status: 400 })
+  }
 
-  const { error } = await supabase
-    .from('activosposeidos')
-    .delete()
-    .eq('usuario_id', user.id)
-    .eq('activocodigo', activocodigo)
+  try {
+    // 3. [UC08] Llamar a DELETE en la base de datos
+    // Filtramos por usuario_id para asegurar que nadie borre activos ajenos
+    const { error, count } = await supabase
+      .from('activosposeidos')
+      .delete({ count: 'exact' })
+      .eq('usuario_id', user.id)
+      .eq('activocodigo', activocodigo)
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+    if (error) {
+      return NextResponse.json({ error: error.message }, { status: 500 })
+    }
 
-  // Es mejor devolver un 200 con un mensaje para confirmar en el frontend
-  return NextResponse.json({ success: true, message: "Activo eliminado correctamente" })
+    // Si el conteo es 0, significa que el activo no existía o no pertenecía al usuario
+    if (count === 0) {
+      return NextResponse.json({ error: 'Activo no encontrado o no autorizado' }, { status: 404 })
+    }
+
+    // 4. [UC08] Respuesta exitosa para confirmar en el frontend
+    return NextResponse.json({ 
+      success: true, 
+      message: "Activo eliminado correctamente de tu cartera" 
+    })
+    
+  } catch (err) {
+    console.error("Error en DELETE /api/activos/[id]:", err)
+    return NextResponse.json({ error: 'Error interno del servidor' }, { status: 500 })
+  }
 }

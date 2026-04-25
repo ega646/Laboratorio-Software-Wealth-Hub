@@ -51,19 +51,32 @@ export default function Dashboard() {
     return () => window.removeEventListener('focus', fetchData);
   }, [fetchData]);
 
+  // [UC08] Lógica de eliminación con refresco optimista
   const eliminarActivo = async (codigo: number) => {
-    if (!confirm("¿Seguro que quieres eliminar este activo de tu cartera?")) return;
+    // [UC08] Modal de confirmación
+    if (!confirm("¿Seguro que quieres eliminar este activo de tu cartera? Esta acción no se puede deshacer.")) return;
 
     try {
+      // [UC08] Llamar a DELETE /api/activos/[id]
       const res = await fetch(`/api/activos/${codigo}`, { method: 'DELETE' });
+      
       if (res.ok) {
+        // [UC08] Refrescar lista sin recargar la página (Optimistic UI)
         setActivos(prev => prev.filter(a => a.activocodigo !== codigo));
-        fetchData();
+        
+        // Refrescamos los totales del portfolio para que el patrimonio neto se actualice
+        const portfolioRes = await fetch(`/api/portfolio?t=${Date.now()}`);
+        if (portfolioRes.ok) {
+          const portfolioData = await portfolioRes.json();
+          setPortfolio(portfolioData);
+        }
       } else {
-        alert("No se pudo eliminar el activo");
+        const error = await res.json();
+        alert(error.error || "No se pudo eliminar el activo");
       }
     } catch (err) {
       console.error("Fallo al borrar:", err);
+      alert("Error de conexión al intentar eliminar el activo");
     }
   };
 
@@ -137,14 +150,19 @@ export default function Dashboard() {
                 </TableHeader>
                 <TableBody>
                   {activosFiltrados.map((pos, index) => {
-                    // Extraemos los datos de forma segura para evitar errores de TypeScript
                     const datosActivo = (pos as any).activos;
                     const nombreDisplay = datosActivo?.descripcion || `Activo #${pos.activocodigo}`;
                     
                     return (
                       <TableRow key={`${pos.activocodigo}-${index}`} className="border-b border-white/5 group hover:bg-white/5 transition-colors">
                         <TableCell className="font-medium text-lg text-white py-6 px-6">
-                          {nombreDisplay}
+                          {/* [UC08] Enlace a la página de detalle de inversión */}
+                          <Link 
+                            href={`/dashboard/activos/${pos.activocodigo}`}
+                            className="hover:text-violet-400 transition-colors"
+                          >
+                            {nombreDisplay}
+                          </Link>
                         </TableCell>
                         <TableCell className="text-right text-lg text-zinc-300 py-6 px-6">
                           {Number(pos.cantidad).toLocaleString('es-ES')}
@@ -153,6 +171,7 @@ export default function Dashboard() {
                           {(pos.valor_total ?? 0).toLocaleString('es-ES', { style: 'currency', currency: 'EUR' })}
                         </TableCell>
                         <TableCell className="text-right py-6 px-6">
+                          {/* [UC08] Botón eliminar con confirmación */}
                           <Button 
                             variant="ghost" 
                             size="icon"
