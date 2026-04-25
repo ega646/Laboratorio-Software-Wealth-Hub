@@ -9,19 +9,14 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import type { ActivoPoseidoConPrecio, ResumenPortfolio } from "@/lib/types";
+import type { ActivoPoseidoConPrecio, ResumenPortfolio, HistoricalDataGlobal } from "@/lib/types";
 
-// Datos de histórico: mock hasta integrar APIs externas (Fase 5)
-const historicalData = [
-  { month: 'Ene', value: 85000 }, { month: 'Feb', value: 88500 },
-  { month: 'Mar', value: 92000 }, { month: 'Abr', value: 89500 },
-  { month: 'May', value: 95000 }, { month: 'Jun', value: 98000 },
-  { month: 'Jul', value: 102000 }, { month: 'Ago', value: 105437 },
-];
+
 
 export default function Dashboard() {
   const [activos, setActivos] = useState<ActivoPoseidoConPrecio[]>([]);
   const [portfolio, setPortfolio] = useState<ResumenPortfolio | null>(null);
+  const [historicalData, setHistoricalData] = useState<HistoricalDataGlobal | null>(null);
   const [loading, setLoading] = useState(true);
   const [actualizando, setActualizando] = useState(false);
   const [mensajePrecios, setMensajePrecios] = useState<{ tipo: 'ok' | 'error'; texto: string } | null>(null);
@@ -32,9 +27,11 @@ export default function Dashboard() {
     Promise.all([
       fetch('/api/activos').then(r => r.json()),
       fetch('/api/portfolio').then(r => r.json()),
-    ]).then(([activosData, portfolioData]) => {
+      fetch('/api/historicalData?divisa=EUR&fecha=2026-04-01').then(r => r.json()),
+    ]).then(([activosData, portfolioData, historicalData]) => {
       setActivos(Array.isArray(activosData) ? activosData : []);
       setPortfolio(portfolioData);
+      setHistoricalData(Array.isArray(historicalData) ? historicalData : [])
       setLoading(false);
     }).catch(() => setLoading(false));
   }, [refreshKey]);
@@ -130,11 +127,11 @@ export default function Dashboard() {
               <ResponsiveContainer width="100%" height={300}>
                 <LineChart data={historicalData}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#27272a" />
-                  <XAxis dataKey="month" stroke="#52525b" />
+                  <XAxis dataKey="day" stroke="#52525b" />
                   <YAxis stroke="#52525b" />
                   <Tooltip
                     contentStyle={{ backgroundColor: '#18181b', border: 'none', borderRadius: '12px' }}
-                    formatter={(value: number) => [`$${value.toLocaleString()}`, 'Valor']}
+                    formatter={(value: number) => [`${value.toLocaleString()}`, 'Valor']}
                   />
                   <Line
                     type="natural"
@@ -172,7 +169,7 @@ export default function Dashboard() {
                       </Pie>
                       <Tooltip
                         contentStyle={{ backgroundColor: '#ffffff', border: '1px solid #e5e7eb', borderRadius: '12px', color: '#111827', padding: '12px 16px' }}
-                        formatter={(value: number) => [`$${value.toLocaleString()}`, 'Valor']}
+                        formatter={(value: number) => [`${portfolio.simboloDivisa}${value.toLocaleString()}`, 'Valor']}
                       />
                     </RechartsPie>
                   </ResponsiveContainer>
@@ -285,7 +282,7 @@ export default function Dashboard() {
                     const descripcion = activo?.descripcion ?? String(pos.activocodigo);
 
                     return (
-                      <TableRow key={pos.activocodigo} className="border-b border-white/10 hover:bg-zinc-800/50 transition-colors">
+                      <TableRow key={pos.idrelacion} className="border-b border-white/10 hover:bg-zinc-800/50 transition-colors">
                         <TableCell>
                           <div className="flex items-center gap-4">
                             <div

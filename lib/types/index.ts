@@ -128,3 +128,9 @@ export interface ResumenPortfolio {
     rentabilidad_pct: number
   } | null
 }
+
+// Resumen de la informacion calculada por GET /api/historicalData
+export interface HistoricalDataGlobal {
+    day:   date
+    value: number
+}

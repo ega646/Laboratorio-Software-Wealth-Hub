@@ -20,6 +20,7 @@ export async function GET() {
       cantidad,
       fechainicio,
       precio_compra,
+      idrelacion,
       activos (
         codigo,
         descripcion,
@@ -61,6 +62,7 @@ export async function GET() {
     const rentabilidad = p.precio_compra > 0
       ? ((precio - p.precio_compra) / p.precio_compra) * 100
       : 0
+    const relacion = p.idrelacion
 
     return {
       ...p,
@@ -68,6 +70,7 @@ export async function GET() {
       precio_actual: precio,
       valor_total: Math.round(valorTotal * 100) / 100,
       rentabilidad_pct: Math.round(rentabilidad * 100) / 100,
+      idrelacion: relacion
     } as ActivoPoseidoConPrecio
   })
 
