@@ -46,8 +46,21 @@ export default function DetallesInversion() {
   async function handleEliminar() {
     setEliminando(true);
     try {
-      const resp = await fetch(`/api/activos/${id}`, { method: 'DELETE' });
-      if (resp.ok) router.push('/dashboard');
+      // Ahora llamamos al DELETE que borra por activocodigo
+      const resp = await fetch(`/api/activos/${id}`, { 
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' }
+      });
+      
+      if (resp.ok) {
+        // Redirigimos al dashboard y forzamos un refresco de datos
+        router.push('/dashboard?refresh=true'); 
+      } else {
+        const errData = await resp.json();
+        alert(`Error al eliminar: ${errData.error}`);
+      }
+    } catch (error) {
+      console.error("Error en la petición DELETE:", error);
     } finally {
       setEliminando(false);
     }
@@ -151,7 +164,8 @@ export default function DetallesInversion() {
                     <AlertDialogHeader>
                       <AlertDialogTitle>¿Eliminar {nombre}?</AlertDialogTitle>
                       <AlertDialogDescription className="text-zinc-400">
-                        Se borrará esta posición de tu cartera. El activo seguirá disponible en el catálogo.
+                        Se borrarán todas las compras asociadas a este activo de tu cartera. 
+                        Esta acción no se puede deshacer.
                       </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>
