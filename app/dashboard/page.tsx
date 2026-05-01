@@ -9,13 +9,16 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import type { ActivoPoseidoConPrecio, ResumenPortfolio } from "@/lib/types";
+import type { ActivoPoseidoConPrecio, ResumenPortfolio, HistoricalDataGlobal } from "@/lib/types";
 import { createClient } from "@/lib/supabase/client"; 
 
 export default function Dashboard() {
   const [activos, setActivos] = useState<ActivoPoseidoConPrecio[]>([]);
   const [portfolio, setPortfolio] = useState<ResumenPortfolio | null>(null);
   const [userName, setUserName] = useState<string>("Usuario");
+  const [divisa, setDivisa]           = useState('EUR')
+  const [fechaInicio, setFechaInicio] = useState('2026-04-01')
+  const [historicalData, setHistoricalData] = useState<HistoricalDataGlobal | null>(null);
   const [loading, setLoading] = useState(true);
   const [actualizando, setActualizando] = useState(false);
   const [mensajePrecios, setMensajePrecios] = useState<{ tipo: 'ok' | 'error'; texto: string } | null>(null);
@@ -26,8 +29,15 @@ export default function Dashboard() {
     
     const { data: { user } } = await supabase.auth.getUser();
     if (user) {
+  useEffect(() => {
+    setLoading(true);
+    Promise.all([
+      fetch('/api/activos').then(r => r.json()),
+      fetch('/api/portfolio').then(r => r.json()),
       const name = user.user_metadata?.full_name || user.email?.split('@')[0] || "Inversor";
       setUserName(name);
+      fetch(`/api/historicalData?divisa=${divisa}&fecha=${fechaInicio}`).then(r => r.json()),
+    ]).then(([activosData, portfolioData, historicalData]) => {
     }
 
     try {
@@ -41,12 +51,13 @@ export default function Dashboard() {
 
       setActivos(Array.isArray(activosData) ? activosData : []);
       setPortfolio(portfolioData);
+      setHistoricalData(Array.isArray(historicalData) ? historicalData : [])
     } catch (error) {
       console.error("Error cargando datos:", error);
     } finally {
       setLoading(false);
     }
-  }, [refreshKey]);
+}, [refreshKey, divisa, fechaInicio])
 
   async function handleActualizarPrecios() {
     setActualizando(true);
@@ -98,6 +109,8 @@ export default function Dashboard() {
       console.error("Fallo al borrar:", err);
       alert("Error de conexión al intentar eliminar el activo");
     }
+  const tipoLabel: Record<string, string> = {
+    cripto: 'Cripto', accion: 'Acción', etf: 'ETF', efectivo: 'Efectivo',
   };
 
   // 1. Filtrado: Solo mostramos lo que el usuario realmente posee
@@ -110,6 +123,7 @@ export default function Dashboard() {
     return (
       <div className="min-h-screen bg-gradient-to-br from-zinc-950 via-zinc-900 to-black text-white flex items-center justify-center">
         <p className="text-zinc-400 text-xl animate-pulse">Cargando tu patrimonio...</p>
+        <p className="text-zinc-400 text-xl">Cargando cartera...</p>
       </div>
     );
   }
@@ -148,7 +162,7 @@ export default function Dashboard() {
               <div>
                 <p className="text-zinc-400 text-base tracking-wide uppercase">Patrimonio Total</p>
                 <h2 className="text-6xl font-bold tracking-tighter mt-3 text-white">
-                  {totalDisplay.toLocaleString('es-ES', { style: 'currency', currency: 'EUR' })}
+                  {(portfolio?.simboloDivisa)}{(portfolio?.patrimonio_total ?? 0).toLocaleString('es-ES')}
                 </h2>
               </div>
               <Wallet className="w-20 h-20 text-violet-400 flex-shrink-0 opacity-50" />
@@ -159,12 +173,36 @@ export default function Dashboard() {
         <Card className="bg-zinc-900 border border-white/10 overflow-hidden">
           <CardHeader className="pb-6 border-b border-white/5">
             <CardTitle className="text-2xl text-white">Mis Inversiones</CardTitle>
+        <div className="flex gap-4 mb-4">
+          {/* Selector de divisa */}
+          <select
+            value={divisa}
+            onChange={(e) => setDivisa(e.target.value)}
+            className="bg-zinc-800 border border-zinc-700 rounded px-3 py-2"
+          >
+            <option value="EUR">EUR €</option>
+            <option value="USD">USD $</option>
+            <option value="GBP">GBP ₤</option>
+          </select>
+
+          {/* Selector de fecha */}
+          <input
+            type="date"
+            value={fechaInicio}
+            onChange={(e) => setFechaInicio(e.target.value)}
+            className="bg-zinc-800 border border-zinc-700 rounded px-3 py-2"
+          />
+        </div>
+                  <XAxis dataKey="day" stroke="#52525b" />
+                    formatter={(value: number) => [`${value.toLocaleString()}`, 'Valor']}
           </CardHeader>
           <CardContent className="p-0">
             {activosFiltrados.length === 0 ? (
               <div className="text-center py-20">
                  <p className="text-zinc-500 text-xl">No tienes activos con balance positivo.</p>
                  <Link href="/dashboard/nuevo-activo" className="text-violet-400 hover:underline mt-2 inline-block">Añade tu primera inversión</Link>
+                        formatter={(value: number) => [`${portfolio.simboloDivisa}${value.toLocaleString()}`, 'Valor']}
+                    {(portfolio?.simboloDivisa)}{(portfolio?.patrimonio_total ?? 0).toLocaleString('es-ES')}
               </div>
             ) : (
               <Table>
@@ -182,7 +220,7 @@ export default function Dashboard() {
                     const nombreDisplay = datosActivo?.descripcion || `Activo #${pos.activocodigo}`;
                     
                     return (
-                      <TableRow key={`${pos.activocodigo}-${index}`} className="border-b border-white/5 group hover:bg-white/5 transition-colors">
+                      <TableRow key={pos.idrelacion} className="border-b border-white/10 hover:bg-zinc-800/50 transition-colors">
                         <TableCell className="font-medium text-lg text-white py-6 px-6">
                           {/* [UC08] Enlace a la página de detalle de inversión */}
                           <Link 
@@ -191,12 +229,13 @@ export default function Dashboard() {
                           >
                             {nombreDisplay}
                           </Link>
+                          {(pos.simbolo_divisa)}{pos.precio_actual.toLocaleString('es-ES', { minimumFractionDigits: 2 })}
                         </TableCell>
                         <TableCell className="text-right text-lg text-zinc-300 py-6 px-6">
                           {Number(pos.cantidad).toLocaleString('es-ES')}
                         </TableCell>
                         <TableCell className="text-right font-bold text-lg text-emerald-400 py-6 px-6">
-                          {(pos.valor_total ?? 0).toLocaleString('es-ES', { style: 'currency', currency: 'EUR' })}
+                          {(pos.simbolo_divisa)}{pos.valor_total.toLocaleString('es-ES')}
                         </TableCell>
                         <TableCell className="text-right py-6 px-6">
                           {/* [UC08] Botón eliminar con confirmación */}

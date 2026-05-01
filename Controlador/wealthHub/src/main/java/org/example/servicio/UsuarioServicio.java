@@ -19,4 +19,13 @@ public class UsuarioServicio {
         }
         return null; // Login fallido
     }
+
+    // En UsuarioServicio.java
+    public Usuario guardarUsuario(Usuario u) {
+        return usuarioRepository.save(u);
+    }
+
+    public Usuario buscarPorId(Long id) {
+        return usuarioRepository.findById(id).orElse(null);
+    }
 }

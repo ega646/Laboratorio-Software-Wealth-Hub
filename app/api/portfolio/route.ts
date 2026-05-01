@@ -1,13 +1,16 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { convertirDivisa } from '@/app/api/cambios/route'
 import type { ResumenPortfolio } from '@/lib/types'
 
 // GET /api/portfolio
 // Calcula el resumen financiero del usuario a partir de activosposeidos + valorhistoricoactivo
+// Valores se presentan en la divisa de preferencia del usuario
 export async function GET() {
   const supabase = await createClient()
 
   const { data: { user } } = await supabase.auth.getUser()
+
   if (!user) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
 
   // 1. Posiciones del usuario con info del tipo de activo
@@ -20,14 +23,19 @@ export async function GET() {
       activos (
         descripcion,
         tipocodigo,
+        divisacodigo (codigo, simbolo_divisa),
         color,
         tiposactivos ( descripcion )
-      )
+      ),
+      perfiles ( divisabasecodigo (codigo, simbolo_divisa)) )
     `)
     .eq('usuario_id', user.id)
-
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
-
+  console.log('Usuario recibido')
+  if (error) {
+      console.error(error)
+      return NextResponse.json({ error: error.message }, { status: 500 })
+  }
+  console.log('Usuario recibido con exito')
   if (!posiciones || posiciones.length === 0) {
     return NextResponse.json({
       patrimonio_total: 0,
@@ -36,21 +44,46 @@ export async function GET() {
     } satisfies ResumenPortfolio)
   }
 
+  // 1.5 separamos la divisa que desea el cliente
+  const perfil = posiciones[0].perfiles as any
+  const divisaFinal = perfil?.divisabasecodigo?.codigo
+  const simboloDivisa = perfil?.divisabasecodigo?.simbolo_divisa
+
   // 2. Precio actual de cada activo (último valor histórico)
   const codigos = posiciones.map(p => p.activocodigo)
 
   const { data: historicos } = await supabase
     .from('valorhistoricoactivo')
-    .select('activocodigo, valor')
+    .select(`activocodigo, valor, fecha,
+            activos (divisacodigo
+                  )`)
     .in('activocodigo', codigos)
     .order('fecha', { ascending: false })
 
-  const precioActual: Record<number, number> = {}
-  for (const h of historicos ?? []) {
-    if (!(h.activocodigo in precioActual)) {
-      precioActual[h.activocodigo] = Number(h.valor)
-    }
+const precioActual: Record<number, number> = {}
+
+for (const h of historicos ?? []) {
+  if (!(h.activocodigo in precioActual)) {
+    const activo = h.activos as any
+    const divisaActivo = activo?.divisacodigo
+
+   try {
+     if (divisaActivo === divisaFinal) {
+       precioActual[h.activocodigo] = Number(h.valor)
+     } else {
+       precioActual[h.activocodigo] = await convertirDivisa(
+         Number(h.valor),
+         divisaActivo,
+         divisaFinal,
+         h.fecha
+       )
+     }
+   } catch (e) {
+     console.error('Error convirtiendo:', h, e)
+     precioActual[h.activocodigo] = 0 // 🔥 evita romper todo
+   }
   }
+}
 
   // 3. Patrimonio total
   const patrimonio_total = posiciones.reduce((sum, p) => {
@@ -99,8 +132,10 @@ export async function GET() {
     : null
 
   return NextResponse.json({
+    simboloDivisa,
     patrimonio_total: Math.round(patrimonio_total * 100) / 100,
     distribucion,
     mejor_activo,
   } satisfies ResumenPortfolio)
+
 }
