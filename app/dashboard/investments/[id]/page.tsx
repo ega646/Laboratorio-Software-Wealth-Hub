@@ -23,6 +23,7 @@ import type { ActivoPoseidoConPrecio, Activo, TipoActivo } from "@/lib/types";
 type ActivoDetalle = ActivoPoseidoConPrecio & {
   activos: Activo & { tiposactivos?: TipoActivo }
   historico: { valor: number; fecha: string }[]
+  compras: { id: number; cantidad: number; precio_compra: number; fechainicio: string }[]
 }
 
 export default function DetallesInversion() {
@@ -43,21 +44,35 @@ export default function DetallesInversion() {
       .catch(() => setLoading(false));
   }, [id]);
 
-  async function handleEliminar() {
+  async function handleEliminar(transactionId?: number) {
     setEliminando(true);
     try {
-      // Ahora llamamos al DELETE que borra por activocodigo
-      const resp = await fetch(`/api/activos/${id}`, { 
+      // Forzamos que si no hay ID, la URL sea limpia para borrar todo el grupo
+      const url = transactionId
+        ? `/api/activos/${id}?transactionId=${transactionId}`
+        : `/api/activos/${id}`;
+
+      const resp = await fetch(url, {
         method: 'DELETE',
         headers: { 'Content-Type': 'application/json' }
       });
-      
+
       if (resp.ok) {
-        // Redirigimos al dashboard y forzamos un refresco de datos
-        router.push('/dashboard?refresh=true'); 
+        // Caso A: Borramos todo el activo o era la última compra que quedaba
+        if (!transactionId || (activo?.compras && activo.compras.length <= 1)) {
+          router.push('/dashboard?refresh=true');
+          router.refresh(); // Asegura que Next.js limpie la caché
+        } else {
+          // Caso B: Borramos solo una compra, recargamos los datos del activo
+          const updatedResp = await fetch(`/api/activos/${id}`);
+          if (updatedResp.ok) {
+            const data = await updatedResp.json();
+            setActivo(data);
+          }
+        }
       } else {
-        const errData = await resp.json();
-        alert(`Error al eliminar: ${errData.error}`);
+        const errorData = await resp.json();
+        console.error("Error al eliminar:", errorData.error);
       }
     } catch (error) {
       console.error("Error en la petición DELETE:", error);
@@ -164,7 +179,7 @@ export default function DetallesInversion() {
                     <AlertDialogHeader>
                       <AlertDialogTitle>¿Eliminar {nombre}?</AlertDialogTitle>
                       <AlertDialogDescription className="text-zinc-400">
-                        Se borrarán todas las compras asociadas a este activo de tu cartera. 
+                        Se borrarán todas las compras asociadas a este activo de tu cartera.
                         Esta acción no se puede deshacer.
                       </AlertDialogDescription>
                     </AlertDialogHeader>
@@ -173,7 +188,8 @@ export default function DetallesInversion() {
                         Cancelar
                       </AlertDialogCancel>
                       <AlertDialogAction
-                        onClick={handleEliminar}
+                        // Usamos una función flecha vacía para que transactionId sea undefined
+                        onClick={() => handleEliminar()}
                         disabled={eliminando}
                         className="bg-red-600 hover:bg-red-700 text-white"
                       >
@@ -265,6 +281,53 @@ export default function DetallesInversion() {
                 Sin datos históricos
               </div>
             )}
+          </CardContent>
+        </Card>
+
+        {/* Sección de Desglose de Compras Individuales */}
+        <Card className="bg-zinc-900/70 border border-white/5 mt-12 mb-12">
+          <CardHeader>
+            <CardTitle className="text-2xl">Historial de Adquisiciones</CardTitle>
+            <CardDescription>Gestiona cada compra individual de este activo</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="overflow-x-auto">
+              <table className="w-full text-left">
+                <thead>
+                  <tr className="text-zinc-500 border-b border-white/5">
+                    <th className="pb-4 font-medium">Fecha</th>
+                    <th className="pb-4 font-medium text-right">Cantidad</th>
+                    <th className="pb-4 font-medium text-right">Precio Compra</th>
+                    <th className="pb-4 font-medium text-right">Acciones</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-white/5">
+                  {activo.compras.map((compra) => (
+                    <tr key={compra.id} className="group">
+                      <td className="py-4 text-zinc-300">
+                        {new Date(compra.fechainicio).toLocaleDateString('es-ES')}
+                      </td>
+                      <td className="py-4 text-right font-medium">
+                        {compra.cantidad.toLocaleString('es-ES')} {simbolo}
+                      </td>
+                      <td className="py-4 text-right text-zinc-300">
+                        {divisaSimbolo}{compra.precio_compra.toLocaleString('es-ES')}
+                      </td>
+                      <td className="py-4 text-right">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleEliminar(compra.id)}
+                          className="text-zinc-500 hover:text-red-400 hover:bg-red-400/10 opacity-0 group-hover:opacity-100 transition-opacity"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </CardContent>
         </Card>
       </div>

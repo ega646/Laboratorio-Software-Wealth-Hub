@@ -89,10 +89,12 @@ export default function Dashboard() {
 
             acc.push({
               ...curr,
+              // Aseguramos que el ID que usemos sea el del código del activo para evitar conflictos
+              id: curr.activocodigo,
               precio_actual: precioMercado,
               valor_total: valorTotalActual,
               rentabilidad_pct: rentabilidadInicial,
-              coste_total_acumulado: curr.cantidad * curr.precio_compra // Auxiliar para el cálculo
+              coste_total_acumulado: curr.cantidad * curr.precio_compra
             });
           }
           return acc;
@@ -619,7 +621,7 @@ export default function Dashboard() {
                         <TableCell className="text-right">
                           <div className={`flex items-center justify-end gap-1.5 text-lg ${pos.rentabilidad_pct >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
                             {pos.rentabilidad_pct >= 0 ? <ArrowUpRight className="w-5 h-5" /> : <ArrowDownRight className="w-5 h-5" />}
-                            {/* Limitamos los decimales a 2*/}
+                            {/* Limitamos los decimales a 2 */}
                             <span>{Math.abs(pos.rentabilidad_pct).toFixed(2)}%</span>
                           </div>
                         </TableCell>
