@@ -1,99 +1,49 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
-import type { ActivoPoseidoConPrecio, NuevaPosition } from '@/lib/types'
 
-// GET /api/activos
-// Devuelve las posiciones del usuario con el precio actual de cada activo
-// (join: activosposeidos → activos → último valorhistoricoactivo)
+// GET /api/catalogo
+// UC01: Devuelve todos los activos disponibles en el sistema
 export async function GET() {
   const supabase = await createClient()
 
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
-
-  // 1. Obtener posiciones con info del activo
-  const { data: posiciones, error } = await supabase
-    .from('activosposeidos')
+  // Eliminamos el filtro de usuario porque el catálogo es público/general
+  const { data: activos, error } = await supabase
+    .from('activos') // Nombre de tu tabla en Supabase
     .select(`
-      usuario_id,
-      activocodigo,
-      cantidad,
-      fechainicio,
-      precio_compra,
-      activos (
-        codigo,
-        descripcion,
-        tipocodigo,
-        divisacodigo,
-        color,
+      codigo,
+      descripcion,
+      tipocodigo,
+      divisacodigo,
+      color,
         simbolo,
-        tiposactivos ( codigo, descripcion, riesgocodigo )
-      )
     `)
-    .eq('usuario_id', user.id)
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
-  if (!posiciones || posiciones.length === 0) return NextResponse.json([])
-
-  // 2. Para cada activo, obtener el precio más reciente de valorhistoricoactivo
-  const codigos = posiciones.map(p => p.activocodigo)
-
-  const { data: historicos } = await supabase
-    .from('valorhistoricoactivo')
-    .select('activocodigo, fecha, valor')
-    .in('activocodigo', codigos)
-    .order('fecha', { ascending: false })
-
-  // Quedarse con el precio más reciente de cada activo
-  const precioActual: Record<number, number> = {}
-  for (const h of historicos ?? []) {
-    if (!(h.activocodigo in precioActual)) {
-      precioActual[h.activocodigo] = Number(h.valor)
-    }
+  if (error) {
+    return NextResponse.json({ error: error.message }, { status: 500 })
   }
 
-  // 3. Combinar y calcular valores derivados
-  const resultado: ActivoPoseidoConPrecio[] = posiciones.map(p => {
-    const precio = precioActual[p.activocodigo] ?? 0
-    const valorTotal = p.cantidad * precio
-    const rentabilidad = p.precio_compra > 0
-      ? ((precio - p.precio_compra) / p.precio_compra) * 100
-      : 0
-
-    return {
-      ...p,
-      precio_actual: precio,
-      valor_total: Math.round(valorTotal * 100) / 100,
-      rentabilidad_pct: Math.round(rentabilidad * 100) / 100,
-    } as ActivoPoseidoConPrecio
-  })
-
-  return NextResponse.json(resultado)
+  return NextResponse.json(activos)
 }
 
-// POST /api/activos
-// Añade un activo del catálogo a la cartera del usuario (inserta en activosposeidos)
 export async function POST(request: Request) {
-  const supabase = await createClient()
+  const supabase = await createClient();
+  const { activocodigo, cantidad } = await request.json();
 
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
+  // 1. Obtener el usuario actual
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return NextResponse.json({ error: "No autorizado" }, { status: 401 });
 
-  const body: NuevaPosition = await request.json()
-
+  // 2. Insertar en la tabla 'activosposeidos'
   const { data, error } = await supabase
-    .from('activosposeidos')
-    .upsert({
-      usuario_id:    user.id,
-      activocodigo:  body.activocodigo,
-      cantidad:      body.cantidad,
-      fechainicio:   body.fechainicio ?? new Date().toISOString().split('T')[0],
-      precio_compra: body.precio_compra ?? 0,
-    })
-    .select()
-    .single()
+    .from("activosposeidos")
+    .insert([
+      { 
+        usuario_id: user.id, 
+        activocodigo: activocodigo, 
+        cantidad: cantidad 
+      }
+    ]);
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
-
-  return NextResponse.json(data, { status: 201 })
+  if (error) return NextResponse.json({ error: error.message }, { status: 400 });
+  return NextResponse.json({ message: "Activo añadido con éxito" });
 }
