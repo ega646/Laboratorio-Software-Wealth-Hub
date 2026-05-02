@@ -1,5 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import type { ActivoPoseidoConPrecio } from '@/lib/types'
+
 
 // GET /api/activos/[id] -> Detalles y cálculos de un activo
 export async function GET(
@@ -12,23 +14,32 @@ export async function GET(
   if (!user) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
 
   const { id } = await params;
+  const activocodigo = parseInt(id)
+  if (isNaN(activocodigo)) return NextResponse.json({ error: 'ID inválido' }, { status: 400 })
 
   // 1. Obtener posiciones del usuario para este activo
-  const { data: posiciones, error: errorPos } = await supabase
-    .from('activosposeidos')
-    .select(`
-      id, 
-      activocodigo, 
-      cantidad, 
-      precio_compra, 
-      fechainicio,
-      activos (
-        codigo, descripcion, tipocodigo, divisacodigo, color, simbolo,
-        tiposactivos ( codigo, descripcion, riesgocodigo )
-      )
-    `)
-    .eq('usuario_id', user.id)
-    .eq('activocodigo', id) // Usamos 'id' directamente
+    const { data: posiciones, error: errorPos } = await supabase
+      .from('activosposeidos')
+      .select(`
+          id,
+        usuario_id,
+        activocodigo,
+        cantidad,
+        fechainicio,
+        precio_compra,
+        activos (
+          codigo,
+          descripcion,
+          tipocodigo,
+          divisacodigo,
+          color,
+          simbolo,
+          tiposactivos ( codigo, descripcion, riesgocodigo )
+        )
+      `)
+      .eq('usuario_id', user.id)
+      .eq('activocodigo', id)
+   //   .single()
 
   if (errorPos || !posiciones || posiciones.length === 0) {
     console.error("Error o activo no encontrado:", errorPos)
@@ -42,9 +53,11 @@ export async function GET(
     .eq('activocodigo', id) // Cambiado activoBusqueda por id
     .order('fecha', { ascending: true })
 
-  const precioActual = historico && historico.length > 0
-    ? Number(historico[historico.length - 1].valor)
-    : 0
+    const precioActual = historico && historico.length > 0 ? Number(historico[0].valor) : 0
+    const valorTotal = posiciones.cantidad * precioActual
+    const rentabilidad = posiciones.precio_compra > 0
+      ? ((precioActual - posiciones.precio_compra) / posiciones.precio_compra) * 100
+      : 0
 
   // 3. Cálculos de consolidación
   const totalCantidad = posiciones.reduce((acc, curr) => acc + curr.cantidad, 0)

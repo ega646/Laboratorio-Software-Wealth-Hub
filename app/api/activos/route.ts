@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import type { ActivoPoseidoConPrecio, NuevaPosition } from '@/lib/types'
 
 // GET /api/activos -> Listar todos los activos del usuario
 export async function GET() {
@@ -9,22 +10,63 @@ export async function GET() {
   if (!user) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
 
   // Traemos todos los activos del usuario
-  const { data, error } = await supabase
+ const { data: posiciones, error } = await supabase
     .from('activosposeidos')
     .select(`
+      usuario_id,
       activocodigo,
       cantidad,
+      fechainicio,
       precio_compra,
       activos (
-        codigo, descripcion, color, simbolo,
-        tiposactivos ( descripcion )
+        codigo,
+        descripcion,
+        tipocodigo,
+        divisacodigo,
+        color,
+        simbolo,
+        tiposactivos ( codigo, descripcion, riesgocodigo )
       )
     `)
     .eq('usuario_id', user.id)
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+if (!posiciones || posiciones.length === 0) return NextResponse.json([])
 
-  return NextResponse.json(data)
+  // 2. Para cada activo, obtener el precio más reciente de valorhistoricoactivo
+  const codigos = posiciones.map(p => p.activocodigo)
+
+  const { data: historicos } = await supabase
+    .from('valorhistoricoactivo')
+    .select('activocodigo, fecha, valor')
+    .in('activocodigo', codigos)
+    .order('fecha', { ascending: false })
+
+  // Quedarse con el precio más reciente de cada activo
+  const precioActual: Record<number, number> = {}
+  for (const h of historicos ?? []) {
+    if (!(h.activocodigo in precioActual)) {
+      precioActual[h.activocodigo] = Number(h.valor)
+    }
+  }
+
+  // 3. Combinar y calcular valores derivados
+  const resultado: ActivoPoseidoConPrecio[] = posiciones.map(p => {
+    const precio = precioActual[p.activocodigo] ?? 0
+    const valorTotal = p.cantidad * precio
+    const rentabilidad = p.precio_compra > 0
+      ? ((precio - p.precio_compra) / p.precio_compra) * 100
+      : 0
+
+    return {
+      ...p,
+      precio_actual: precio,
+      valor_total: Math.round(valorTotal * 100) / 100,
+      rentabilidad_pct: Math.round(rentabilidad * 100) / 100,
+    } as ActivoPoseidoConPrecio
+  })
+
+  return NextResponse.json(resultado)
 }
 
 // POST /api/activos -> Crear una nueva posición
@@ -34,11 +76,11 @@ export async function POST(request: Request) {
 
   if (!user) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
 
-  const body = await request.json()
+  const body: NuevaPosition = await request.json()
 
   const { data, error } = await supabase
     .from('activosposeidos')
-    .insert({
+    .upsert({
       usuario_id: user.id,
       activocodigo: parseInt(body.activocodigo),
       cantidad: parseFloat(body.cantidad),
