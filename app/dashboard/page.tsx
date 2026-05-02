@@ -81,6 +81,7 @@ export default function Dashboard() {
           } else {
             // Primera vez que vemos este activo en el bucle
             const valorTotalActual = curr.cantidad * precioMercado;
+            const simboloDeDivisa = curr.activos?.divisas?.simbolo_divisa;
             const rentabilidadInicial = curr.precio_compra > 0
               ? ((precioMercado - curr.precio_compra) / curr.precio_compra) * 100
               : 0;
@@ -92,7 +93,8 @@ export default function Dashboard() {
               precio_actual: precioMercado,
               valor_total: valorTotalActual,
               rentabilidad_pct: rentabilidadInicial,
-              coste_total_acumulado: curr.cantidad * curr.precio_compra
+              coste_total_acumulado: curr.cantidad * curr.precio_compra,
+              simboloDivisa: simboloDeDivisa
             });
           }
           return acc;
@@ -601,6 +603,7 @@ export default function Dashboard() {
                     const tipo = activo?.tiposactivos?.descripcion ?? activo?.tipocodigo ?? '—';
                     const color = activo?.color ?? '#6366f1';
                     const descripcion = activo?.descripcion ?? String(pos.activocodigo);
+                    const simboloDivisa = activo?.simboloDivisa;
 
                     return (
                       <TableRow key={pos.activocodigo} className="border-b border-white/10 hover:bg-zinc-800/50 transition-colors">

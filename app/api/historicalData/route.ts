@@ -74,7 +74,7 @@ export async function GET(request: Request) {
       .gte('fecha', fechaInicio)
       .order('fecha', { ascending: true })
 
-    console.log(historicos)
+    //console.log(historicos)
     if (!historicos || historicos.length === 0) return []
 
     // 3️⃣ Agrupar históricos por fecha
@@ -156,7 +156,7 @@ export async function GET(request: Request) {
 
     }
 
-    console.log('Informacion historica obtenida:')
-    console.log(resultado)
+    //console.log('Informacion historica obtenida:')
+    //console.log(resultado)
     return NextResponse.json(resultado, { status: 200 })
 }

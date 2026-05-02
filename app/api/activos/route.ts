@@ -18,7 +18,7 @@ export async function GET() {
       cantidad,
       fechainicio,
       precio_compra,
-      idrelacion,
+      id,
       activos (
         codigo,
         descripcion,
@@ -31,7 +31,10 @@ export async function GET() {
     `)
     .eq('usuario_id', user.id)
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  if (error) {
+       console.log('En activos: '+error.message)
+       return NextResponse.json({ error: error.message }, { status: 500 })
+  }
   if (!posiciones || posiciones.length === 0) return NextResponse.json([])
 
   // 2. Para cada activo, obtener el precio más reciente de valorhistoricoactivo
@@ -95,6 +98,9 @@ export async function POST(request: Request) {
     .select()
     .single()
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  if (error) {
+      console.log('En activos: '+error.message)
+      return NextResponse.json({ error: error.message }, { status: 500 })
+  }
   return NextResponse.json(data, { status: 201 })
 }
