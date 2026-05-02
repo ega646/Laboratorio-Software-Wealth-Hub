@@ -56,8 +56,6 @@ export async function GET(
     activocodigo: id, // Cambiado activoBusqueda por id
     cantidad: totalCantidad,
     precio_compra: precioMedioCompra,
-    precio_compra: posicion.precio_compra,
-    activos: posicion.activos,
     precio_actual: precioActual,
     activos: posiciones[0].activos,
     historico: historico || [],
@@ -76,33 +74,16 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const supabase = await createClient()
-  // 1. [UC08] Verificar autenticación
   const { data: { user } } = await supabase.auth.getUser()
-    return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
-  }
 
   if (!user) {
     return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
   }
-  if (isNaN(activocodigo)) {
-    return NextResponse.json({ error: 'ID inválido' }, { status: 400 })
-  }
 
-  try {
-    // 3. [UC08] Llamar a DELETE en la base de datos
-    // Filtramos por usuario_id para asegurar que nadie borre activos ajenos
   const resolvedParams = await params
   const idStr = resolvedParams.id
   const activoBusqueda = isNaN(Number(idStr)) ? idStr : parseInt(idStr)
-    const { error, count } = await supabase
-      .from('activosposeidos')
-      .delete({ count: 'exact' })
-      .eq('usuario_id', user.id)
-      .eq('activocodigo', activocodigo)
 
-    if (error) {
-      return NextResponse.json({ error: error.message }, { status: 500 })
-    }
   const { searchParams } = new URL(request.url)
   const transactionId = searchParams.get('transactionId')
 
@@ -122,19 +103,5 @@ export async function DELETE(
     return NextResponse.json({ error: error.message }, { status: 500 })
   }
 
-    // Si el conteo es 0, significa que el activo no existía o no pertenecía al usuario
-    if (count === 0) {
-      return NextResponse.json({ error: 'Activo no encontrado o no autorizado' }, { status: 404 })
-    }
-
-    // 4. [UC08] Respuesta exitosa para confirmar en el frontend
-    return NextResponse.json({ 
-      success: true, 
-      message: "Activo eliminado correctamente de tu cartera" 
-    })
-    
-  } catch (err) {
-    console.error("Error en DELETE /api/activos/[id]:", err)
-    return NextResponse.json({ error: 'Error interno del servidor' }, { status: 500 })
-  }
+  return new NextResponse(null, { status: 204 })
 }
