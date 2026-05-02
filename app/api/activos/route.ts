@@ -9,8 +9,8 @@ export async function GET() {
 
   if (!user) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
 
-  // Traemos todos los activos del usuario
- const { data: posiciones, error } = await supabase
+  // 1. Obtener posiciones con info del activo
+  const { data: posiciones, error } = await supabase
     .from('activosposeidos')
     .select(`
       usuario_id,
@@ -18,11 +18,12 @@ export async function GET() {
       cantidad,
       fechainicio,
       precio_compra,
+      idrelacion,
       activos (
         codigo,
         descripcion,
         tipocodigo,
-        divisacodigo,
+        divisas (codigo, simbolo_divisa),
         color,
         simbolo,
         tiposactivos ( codigo, descripcion, riesgocodigo )
@@ -31,7 +32,7 @@ export async function GET() {
     .eq('usuario_id', user.id)
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
-if (!posiciones || posiciones.length === 0) return NextResponse.json([])
+  if (!posiciones || posiciones.length === 0) return NextResponse.json([])
 
   // 2. Para cada activo, obtener el precio más reciente de valorhistoricoactivo
   const codigos = posiciones.map(p => p.activocodigo)
@@ -54,15 +55,19 @@ if (!posiciones || posiciones.length === 0) return NextResponse.json([])
   const resultado: ActivoPoseidoConPrecio[] = posiciones.map(p => {
     const precio = precioActual[p.activocodigo] ?? 0
     const valorTotal = p.cantidad * precio
+    const simbolo    = p.activos?.divisas?.simbolo_divisa
     const rentabilidad = p.precio_compra > 0
       ? ((precio - p.precio_compra) / p.precio_compra) * 100
       : 0
+    const relacion = p.idrelacion
 
     return {
       ...p,
+      simbolo_divisa: simbolo,
       precio_actual: precio,
       valor_total: Math.round(valorTotal * 100) / 100,
       rentabilidad_pct: Math.round(rentabilidad * 100) / 100,
+      idrelacion: relacion
     } as ActivoPoseidoConPrecio
   })
 

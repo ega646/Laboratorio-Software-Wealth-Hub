@@ -19,19 +19,16 @@ import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, Command
 import { Popover, PopoverContent, PopoverTrigger, } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
 
-import type { ActivoPoseidoConPrecio, ResumenPortfolio, Activo } from "@/lib/types";
+import type { ActivoPoseidoConPrecio, ResumenPortfolio, Activo, HistoricalDataGlobal } from "@/lib/types";
 
-// Datos de histórico: mock hasta integrar APIs externas (Fase 5)
-const historicalData = [
-  { month: 'Ene', value: 85000 }, { month: 'Feb', value: 88500 },
-  { month: 'Mar', value: 92000 }, { month: 'Abr', value: 89500 },
-  { month: 'May', value: 95000 }, { month: 'Jun', value: 98000 },
-  { month: 'Jul', value: 102000 }, { month: 'Ago', value: 105437 },
-];
+
 
 export default function Dashboard() {
   const [activos, setActivos] = useState<ActivoPoseidoConPrecio[]>([]);
   const [portfolio, setPortfolio] = useState<ResumenPortfolio | null>(null);
+  const [divisa, setDivisa]           = useState('EUR')
+  const [fechaInicio, setFechaInicio] = useState('2026-04-01')
+  const [historicalData, setHistoricalData] = useState<HistoricalDataGlobal | null>(null);
   const [loading, setLoading] = useState(true);
   const [actualizando, setActualizando] = useState(false);
   const [mensajePrecios, setMensajePrecios] = useState<{ tipo: 'ok' | 'error'; texto: string } | null>(null);
@@ -56,8 +53,9 @@ export default function Dashboard() {
     Promise.all([
       fetch('/api/activos').then(r => r.json()),
       fetch('/api/portfolio').then(r => r.json()),
+      fetch(`/api/historicalData?divisa=${divisa}&fecha=${fechaInicio}`).then(r => r.json()),
       fetch('/api/catalogo').then(r => r.json()), // Aquí asumimos que catalogo tiene el precio actual
-    ]).then(([activosData, portfolioData, catalogoData]) => {
+    ]).then(([activosData, portfolioData, historicalData, catalogoData]) => {
 
       if (Array.isArray(activosData)) {
         const activosAgrupados = activosData.reduce((acc: any[], curr) => {
@@ -106,10 +104,11 @@ export default function Dashboard() {
       }
 
       setPortfolio(portfolioData);
+      setHistoricalData(Array.isArray(historicalData) ? historicalData : [])
       setCatalogo(Array.isArray(catalogoData) ? catalogoData : []);
       setLoading(false);
     }).catch(() => setLoading(false));
-  }, [refreshKey]);
+  }, [refreshKey,divisa,fechaInicio]);
 
   async function handleActualizarPrecios() {
     setActualizando(true);
@@ -231,7 +230,7 @@ export default function Dashboard() {
               <div>
                 <p className="text-zinc-400 text-base tracking-wide">PATRIMONIO TOTAL</p>
                 <h2 className="text-6xl font-bold tracking-tighter mt-3">
-                  ${(portfolio?.patrimonio_total ?? 0).toLocaleString('es-ES')}
+                   {(portfolio?.simboloDivisa)}{(portfolio?.patrimonio_total ?? 0).toLocaleString('es-ES')}
                 </h2>
                 {portfolio?.mejor_activo && (
                   <div className="flex items-center gap-3 mt-5 text-emerald-400">
@@ -247,6 +246,27 @@ export default function Dashboard() {
           </CardContent>
         </Card>
 
+        <div className="flex gap-4 mb-4">
+          {/* Selector de divisa */}
+          <select
+            value={divisa}
+            onChange={(e) => setDivisa(e.target.value)}
+            className="bg-zinc-800 border border-zinc-700 rounded px-3 py-2"
+          >
+            <option value="EUR">EUR €</option>
+            <option value="USD">USD $</option>
+            <option value="GBP">GBP ₤</option>
+          </select>
+
+          {/* Selector de fecha */}
+          <input
+            type="date"
+            value={fechaInicio}
+            onChange={(e) => setFechaInicio(e.target.value)}
+            className="bg-zinc-800 border border-zinc-700 rounded px-3 py-2"
+          />
+        </div>
+
         {/* Charts Row */}
         <div className="grid lg:grid-cols-2 gap-8 mb-12">
           {/* Historical Performance */}
@@ -258,11 +278,11 @@ export default function Dashboard() {
               <ResponsiveContainer width="100%" height={300}>
                 <LineChart data={historicalData}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#27272a" />
-                  <XAxis dataKey="month" stroke="#52525b" />
+                  <XAxis dataKey="day" stroke="#52525b" />
                   <YAxis stroke="#52525b" />
                   <Tooltip
                     contentStyle={{ backgroundColor: '#18181b', border: 'none', borderRadius: '12px' }}
-                    formatter={(value: number) => [`$${value.toLocaleString()}`, 'Valor']}
+                    formatter={(value: number) => [`${value.toLocaleString()}`, 'Valor']}
                   />
                   <Line
                     type="natural"
@@ -300,7 +320,7 @@ export default function Dashboard() {
                       </Pie>
                       <Tooltip
                         contentStyle={{ backgroundColor: '#ffffff', border: '1px solid #e5e7eb', borderRadius: '12px', color: '#111827', padding: '12px 16px' }}
-                        formatter={(value: number) => [`$${value.toLocaleString()}`, 'Valor']}
+                        formatter={(value: number) => [`${(portfolio?.simboloDivisa)}${value.toLocaleString()}`, 'Valor']}
                       />
                     </RechartsPie>
                   </ResponsiveContainer>
@@ -331,7 +351,7 @@ export default function Dashboard() {
                 <div>
                   <p className="text-zinc-400 text-sm">Patrimonio Total</p>
                   <p className="text-4xl font-bold mt-4">
-                    ${(portfolio?.patrimonio_total ?? 0).toLocaleString('es-ES')}
+                     {(portfolio?.simboloDivisa)}{(portfolio?.patrimonio_total ?? 0).toLocaleString('es-ES')}
                   </p>
                 </div>
                 <Wallet className="w-10 h-10 text-violet-500/30" />
@@ -614,7 +634,7 @@ export default function Dashboard() {
 
                         {/* Columna: Precio Actual */}
                         <TableCell className="text-right text-lg">
-                          ${pos.precio_actual.toLocaleString('es-ES', { minimumFractionDigits: 2 })}
+                           {(pos.simboloDivisa)}{pos.precio_actual.toLocaleString('es-ES', { minimumFractionDigits: 2 })}
                         </TableCell>
 
                         {/* Columna: Rentabilidad (Calculada ponderada en el reduce) */}
@@ -628,7 +648,7 @@ export default function Dashboard() {
 
                         {/* Columna: Valor Total (Sumado en el reduce) */}
                         <TableCell className="text-right font-semibold text-lg">
-                          ${pos.valor_total.toLocaleString('es-ES')}
+                           {(pos.simboloDivisa)}{pos.valor_total.toLocaleString('es-ES')}
                         </TableCell>
 
                         {/* Columna: Acciones */}
