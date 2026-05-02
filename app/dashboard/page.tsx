@@ -3,576 +3,608 @@
 import { useEffect, useState, useCallback } from "react";
 import Link from "next/link";
 import { Header } from "@/components/Header";
-import { TrendingUp, Wallet, Trash2, PieChart as PieIcon, ArrowUpRight, ArrowDownRight } from "lucide-react";
-import { LineChart, Line, PieChart as RechartsPie, Pie, Cell, ResponsiveContainer, XAxis, YAxis, Tooltip, CartesianGrid } from "recharts";
+import { Wallet, Trash2, Plus } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import type { ActivoPoseidoConPrecio, ResumenPortfolio, HistoricalDataGlobal } from "@/lib/types";
-import { createClient } from "@/lib/supabase/client"; 
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Plus } from "lucide-react";
-import { Check, ChevronsUpDown, Search } from "lucide-react";
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
-import { Popover, PopoverContent, PopoverTrigger, } from "@/components/ui/popover";
-import { cn } from "@/lib/utils";
 
 import type { ActivoPoseidoConPrecio, ResumenPortfolio, Activo } from "@/lib/types";
 
 export default function Dashboard() {
+  // ---------------- STATE ----------------
   const [activos, setActivos] = useState<ActivoPoseidoConPrecio[]>([]);
   const [portfolio, setPortfolio] = useState<ResumenPortfolio | null>(null);
-  const [userName, setUserName] = useState<string>("Usuario");
-  const [divisa, setDivisa]           = useState('EUR')
-  const [fechaInicio, setFechaInicio] = useState('2026-04-01')
-  const [historicalData, setHistoricalData] = useState<HistoricalDataGlobal | null>(null);
   const [loading, setLoading] = useState(true);
-  const [actualizando, setActualizando] = useState(false);
-  const [mensajePrecios, setMensajePrecios] = useState<{ tipo: 'ok' | 'error'; texto: string } | null>(null);
-  const [refreshKey, setRefreshKey] = useState(0);
 
-  const fetchData = useCallback(async () => {
-    const supabase = createClient();
-    
-    const { data: { user } } = await supabase.auth.getUser();
-    if (user) {
-  // Estados para el modal de añadir inversión
+  // Modal
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
-  const [openSearch, setOpenSearch] = useState(false); // Controla el desplegable de búsqueda
-  const [searchTerm, setSearchTerm] = useState("");
   const [selectedActivoId, setSelectedActivoId] = useState("");
   const [cantidad, setCantidad] = useState("");
-  const [precioCompra, setPrecioCompra] = useState("0"); // Default 0
-  const [fechaCompra, setFechaCompra] = useState(new Date().toISOString().split('T')[0]); // Default hoy (YYYY-MM-DD)
+  const [precioCompra, setPrecioCompra] = useState("0");
+  const [fechaCompra, setFechaCompra] = useState(new Date().toISOString().split("T")[0]);
   const [adding, setAdding] = useState(false);
   const [catalogo, setCatalogo] = useState<Activo[]>([]);
-
-  // Helper para encontrar el símbolo de la divisa del activo seleccionado
-  const activoSeleccionado = catalogo.find(a => a.codigo.toString() === selectedActivoId);
+  const [refreshKey, setRefreshKey] = useState(0);
 
   useEffect(() => {
-    setLoading(true);
-    Promise.all([
-      fetch('/api/activos').then(r => r.json()),
-      fetch('/api/portfolio').then(r => r.json()),
-      const name = user.user_metadata?.full_name || user.email?.split('@')[0] || "Inversor";
-      setUserName(name);
-      fetch(`/api/historicalData?divisa=${divisa}&fecha=${fechaInicio}`).then(r => r.json()),
-    ]).then(([activosData, portfolioData, historicalData]) => {
-    }
+      setLoading(true);
+      Promise.all([
+        fetch('/api/activos').then(r => r.json()),
+        fetch('/api/portfolio').then(r => r.json()),
+        fetch('/api/catalogo').then(r => r.json()), // Aquí asumimos que catalogo tiene el precio actual
+      ]).then(([activosData, portfolioData, catalogoData]) => {
 
-    try {
-      const [activosRes, portfolioRes] = await Promise.all([
-        fetch(`/api/activos?t=${Date.now()}`),
-        fetch(`/api/portfolio?t=${Date.now()}`)
-      ]);
-      
-      const activosData = await activosRes.json();
-      const portfolioData = await portfolioRes.json();
+        if (Array.isArray(activosData)) {
+          const activosAgrupados = activosData.reduce((acc: any[], curr) => {
+            // 1. Buscamos el precio actual en el catálogo para este activo
+            const infoCatalogo = catalogoData.find((c: any) => c.codigo === curr.activocodigo);
+            const precioMercado = infoCatalogo?.precio_actual || curr.precio_compra || 0;
 
-      fetch('/api/catalogo').then(r => r.json()), // Aquí asumimos que catalogo tiene el precio actual
-    ]).then(([activosData, portfolioData, catalogoData]) => {
+            const existente = acc.find(item => item.activocodigo === curr.activocodigo);
 
-      if (Array.isArray(activosData)) {
-        const activosAgrupados = activosData.reduce((acc: any[], curr) => {
-          // 1. Buscamos el precio actual en el catálogo para este activo
-          const infoCatalogo = catalogoData.find((c: any) => c.codigo === curr.activocodigo);
-          const precioMercado = infoCatalogo?.precio_actual || curr.precio_compra || 0;
+            if (existente) {
+              // Actualizamos acumulados
+              existente.cantidad += curr.cantidad;
+              existente.coste_total_acumulado += (curr.cantidad * curr.precio_compra);
 
-          const existente = acc.find(item => item.activocodigo === curr.activocodigo);
+              // El valor total es siempre Cantidad Total * Precio Mercado Actual
+              existente.valor_total = existente.cantidad * precioMercado;
 
-          if (existente) {
-            // Actualizamos acumulados
-            existente.cantidad += curr.cantidad;
-            existente.coste_total_acumulado += (curr.cantidad * curr.precio_compra);
+              // Precio Medio de Compra para calcular la rentabilidad total
+              const precioMedioCompra = existente.coste_total_acumulado / existente.cantidad;
+              existente.rentabilidad_pct = precioMedioCompra > 0
+                ? ((precioMercado - precioMedioCompra) / precioMedioCompra) * 100
+                : 0;
+            } else {
+              // Primera vez que vemos este activo en el bucle
+              const valorTotalActual = curr.cantidad * precioMercado;
+              const rentabilidadInicial = curr.precio_compra > 0
+                ? ((precioMercado - curr.precio_compra) / curr.precio_compra) * 100
+                : 0;
 
-            // El valor total es siempre Cantidad Total * Precio Mercado Actual
-            existente.valor_total = existente.cantidad * precioMercado;
+              acc.push({
+                ...curr,
+                // Aseguramos que el ID que usemos sea el del código del activo para evitar conflictos
+                id: curr.activocodigo,
+                precio_actual: precioMercado,
+                valor_total: valorTotalActual,
+                rentabilidad_pct: rentabilidadInicial,
+                coste_total_acumulado: curr.cantidad * curr.precio_compra
+              });
+            }
+            return acc;
+          }, []);
 
-            // Precio Medio de Compra para calcular la rentabilidad total
-            const precioMedioCompra = existente.coste_total_acumulado / existente.cantidad;
-            existente.rentabilidad_pct = precioMedioCompra > 0
-              ? ((precioMercado - precioMedioCompra) / precioMedioCompra) * 100
-              : 0;
-          } else {
-            // Primera vez que vemos este activo en el bucle
-            const valorTotalActual = curr.cantidad * precioMercado;
-            const rentabilidadInicial = curr.precio_compra > 0
-              ? ((precioMercado - curr.precio_compra) / curr.precio_compra) * 100
-              : 0;
+          setActivos(activosAgrupados);
+        } else {
+          setActivos([]);
+        }
 
-            acc.push({
-              ...curr,
-              // Aseguramos que el ID que usemos sea el del código del activo para evitar conflictos
-              id: curr.activocodigo,
-              precio_actual: precioMercado,
-              valor_total: valorTotalActual,
-              rentabilidad_pct: rentabilidadInicial,
-              coste_total_acumulado: curr.cantidad * curr.precio_compra
-            });
-          }
-          return acc;
-        }, []);
+        setPortfolio(portfolioData);
+        setCatalogo(Array.isArray(catalogoData) ? catalogoData : []);
+        setLoading(false);
+      }).catch(() => setLoading(false));
+    }, [refreshKey]);
 
-        setActivos(activosAgrupados);
-      } else {
-        setActivos([]);
-      }
-
-      setPortfolio(portfolioData);
-      setHistoricalData(Array.isArray(historicalData) ? historicalData : [])
-      setCatalogo(Array.isArray(catalogoData) ? catalogoData : []);
-    } catch (error) {
-      console.error("Error cargando datos:", error);
-    } finally {
-      setLoading(false);
-    }
-}, [refreshKey, divisa, fechaInicio])
-
-  async function handleActualizarPrecios() {
-    setActualizando(true);
-    setMensajePrecios(null);
-    try {
-      const resp = await fetch('/api/precios', { method: 'POST' });
-      const data = await resp.json();
-      if (!resp.ok) throw new Error(data.error ?? 'Error desconocido');
-      setMensajePrecios({ tipo: 'ok', texto: `${data.actualizados} precio${data.actualizados !== 1 ? 's' : ''} actualizado${data.actualizados !== 1 ? 's' : ''}` });
-      setRefreshKey(k => k + 1);
-    } catch (e) {
-      setMensajePrecios({ tipo: 'error', texto: (e as Error).message });
-    } finally {
-      setActualizando(false);
-      setTimeout(() => setMensajePrecios(null), 4000);
-    }
-  }
-
-  useEffect(() => {
-    fetchData();
-    window.addEventListener('focus', fetchData);
-    return () => window.removeEventListener('focus', fetchData);
-  }, [fetchData]);
+  // ---------------- ADD ----------------
   async function handleAddInversion() {
     const numCantidad = parseFloat(cantidad);
     const numPrecio = parseFloat(precioCompra);
 
-    const hoyString = new Date().toISOString().split('T')[0]; // "2024-05-20" (ejemplo)
-
-  // [UC08] Lógica de eliminación con refresco optimista
-  const eliminarActivo = async (codigo: number) => {
-    // [UC08] Modal de confirmación
-    if (!confirm("¿Seguro que quieres eliminar este activo de tu cartera? Esta acción no se puede deshacer.")) return;
-
-    try {
-      // [UC08] Llamar a DELETE /api/activos/[id]
-      const res = await fetch(`/api/activos/${codigo}`, { method: 'DELETE' });
-      
-      if (res.ok) {
-        // [UC08] Refrescar lista sin recargar la página (Optimistic UI)
-        setActivos(prev => prev.filter(a => a.activocodigo !== codigo));
-        
-        // Refrescamos los totales del portfolio para que el patrimonio neto se actualice
-        const portfolioRes = await fetch(`/api/portfolio?t=${Date.now()}`);
-        if (portfolioRes.ok) {
-          const portfolioData = await portfolioRes.json();
-          setPortfolio(portfolioData);
-        }
-      } else {
-        const error = await res.json();
-        alert(error.error || "No se pudo eliminar el activo");
-      }
-    } catch (err) {
-      console.error("Fallo al borrar:", err);
-      alert("Error de conexión al intentar eliminar el activo");
-    }
-    // Si la cadena de la fecha elegida es mayor a la de hoy, es el futuro
-    if (fechaCompra > hoyString) {
-      alert("La fecha de compra no puede ser una fecha futura.");
-      return;
-    }
-
     if (!selectedActivoId || isNaN(numCantidad) || numCantidad <= 0) {
-      alert("Por favor selecciona un activo y una cantidad válida (mayor a 0)");
+      alert("Cantidad inválida");
       return;
     }
 
     setAdding(true);
+
     try {
-      const res = await fetch('/api/activos', { // <--- Endpoint correcto
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+      const res = await fetch("/api/activos", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
         body: JSON.stringify({
           activocodigo: selectedActivoId,
           cantidad: numCantidad,
           precio_compra: numPrecio,
-          fechainicio: fechaCompra, // <--- Nombre de campo correcto según tu DB/Route
+          fechainicio: fechaCompra,
         }),
       });
 
-      const data = await res.json();
+      if (!res.ok) throw new Error("Error");
 
-      if (!res.ok) {
-        throw new Error(data.error || "Error al añadir la inversión");
-      }
-
-      // Éxito
       setIsAddModalOpen(false);
-
-      // Reset de campos
-      setSelectedActivoId("");
       setCantidad("");
-      setPrecioCompra("0");
-      setFechaCompra(new Date().toISOString().split('T')[0]);
-
-      // Refrescar los datos de la interfaz
-      setRefreshKey(k => k + 1);
-
-    } catch (error) {
-      alert("Error al añadir la inversión: " + (error as Error).message);
+      setSelectedActivoId("");
+      fetchData();
+    } catch (err) {
+      alert("Error al añadir");
     } finally {
       setAdding(false);
     }
   }
 
-  const tipoLabel: Record<string, string> = {
-    cripto: 'Cripto', accion: 'Acción', etf: 'ETF', efectivo: 'Efectivo',
+  // ---------------- DELETE ----------------
+  const eliminarActivo = async (codigo: number) => {
+    if (!confirm("¿Eliminar activo?")) return;
+
+    try {
+      const res = await fetch(`/api/activos/${codigo}`, {
+        method: "DELETE",
+      });
+
+      if (!res.ok) throw new Error();
+
+      setActivos((prev) => prev.filter((a) => a.activocodigo !== codigo));
+      fetchData();
+    } catch {
+      alert("Error al eliminar");
+    }
   };
 
-  // 1. Filtrado: Solo mostramos lo que el usuario realmente posee
-  const activosFiltrados = activos.filter(a => (a.cantidad ?? 0) > 0);
-  
-  const patrimonioCalculado = activosFiltrados.reduce((acc, curr) => acc + (curr.valor_total || 0), 0);
-  const totalDisplay = portfolio?.patrimonio_total ?? patrimonioCalculado;
-
+  // ---------------- RENDER ----------------
   if (loading) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-zinc-950 via-zinc-900 to-black text-white flex items-center justify-center">
-        <p className="text-zinc-400 text-xl animate-pulse">Cargando tu patrimonio...</p>
-        <p className="text-zinc-400 text-xl">Cargando cartera...</p>
-      </div>
-    );
+    return <div className="text-white p-10">Cargando...</div>;
   }
 
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-zinc-950 via-zinc-900 to-black text-white pb-20">
-      <Header />
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        <div className="mb-12 flex justify-between items-end">
-          <div>
-            <h1 className="text-5xl font-bold tracking-tight text-white">Tu cartera</h1>
-            <p className="text-xl text-zinc-400 mt-3">
-              Resumen de activos de <span className="text-white font-medium">{userName}</span>.
-            </p>
-          </div>
-          
-          <Button asChild className="bg-violet-600 hover:bg-violet-700 text-white px-8 py-6 rounded-2xl text-lg font-bold shadow-lg shadow-violet-500/20 transition-all hover:scale-105">
-            <Link href="/dashboard/nuevo-activo">
-              + Añadir Inversión
-            </Link>
-          </Button>
-
-              disabled={actualizando}
-              variant="outline"
-              className="gap-2 border-white/10 bg-zinc-900 hover:bg-zinc-800 h-11 px-6 text-base font-medium"
-            >
-              <RefreshCw className={`w-5 h-5 ${actualizando ? 'animate-spin' : ''}`} />
-              {actualizando ? 'Actualizando...' : 'Actualizar cartera'}
-            </Button>
-          </div>
+return (
+  <div className="min-h-screen bg-gradient-to-br from-zinc-950 via-zinc-900 to-black text-white pb-20">
+    <Header />
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+      <div className="mb-12 flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+        <div>
+          <h1 className="text-5xl font-bold tracking-tight">Tu cartera</h1>
+          <p className="text-xl text-zinc-400 mt-3">Bienvenido de nuevo. Aquí tienes el resumen de tu patrimonio.</p>
         </div>
 
-        <Card className="bg-gradient-to-br from-zinc-900 to-zinc-800 border border-white/10 mb-12 shadow-2xl">
-          <CardContent className="p-9">
-            <div className="flex flex-col md:flex-row justify-between items-start gap-8">
+        <div className="flex items-center gap-3 flex-shrink-0">
+          {mensajePrecios && (
+            <span className={`text-sm ${mensajePrecios.tipo === 'ok' ? 'text-emerald-400' : 'text-red-400'}`}>
+              {mensajePrecios.texto}
+            </span>
+          )}
+
+          <Button
+            onClick={handleActualizarPrecios}
+            disabled={actualizando}
+            variant="outline"
+            className="gap-2 border-white/10 bg-zinc-900 hover:bg-zinc-800 h-11 px-6 text-base font-medium"
+          >
+            <RefreshCw className={`w-5 h-5 ${actualizando ? 'animate-spin' : ''}`} />
+            {actualizando ? 'Actualizando...' : 'Actualizar cartera'}
+          </Button>
+        </div>
+      </div>
+
+      {/* Net Worth */}
+      <Card className="bg-gradient-to-br from-zinc-900 to-zinc-800 border border-white/10 mb-12 shadow-2xl">
+        <CardContent className="p-9">
+          <div className="flex flex-col md:flex-row justify-between items-start gap-8">
+            <div>
+              <p className="text-zinc-400 text-base tracking-wide">PATRIMONIO TOTAL</p>
+              <h2 className="text-6xl font-bold tracking-tighter mt-3">
+                ${(portfolio?.patrimonio_total ?? 0).toLocaleString('es-ES')}
+              </h2>
+              {portfolio?.mejor_activo && (
+                <div className="flex items-center gap-3 mt-5 text-emerald-400">
+                  <TrendingUp className="w-5 h-5" />
+                  <span className="text-xl font-medium">
+                    Mejor activo: {portfolio.mejor_activo.descripcion} ({portfolio.mejor_activo.rentabilidad_pct > 0 ? '+' : ''}{portfolio.mejor_activo.rentabilidad_pct}%)
+                  </span>
+                </div>
+              )}
+            </div>
+            <Wallet className="w-20 h-20 text-violet-400 flex-shrink-0" />
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Charts Row */}
+      <div className="grid lg:grid-cols-2 gap-8 mb-12">
+        {/* Historical Performance */}
+        <Card className="bg-zinc-900 border border-white/10">
+          <CardHeader className="pb-4">
+            <CardTitle className="text-2xl">Evolución del Patrimonio</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ResponsiveContainer width="100%" height={300}>
+              <LineChart data={historicalData}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#27272a" />
+                <XAxis dataKey="month" stroke="#52525b" />
+                <YAxis stroke="#52525b" />
+                <Tooltip
+                  contentStyle={{ backgroundColor: '#18181b', border: 'none', borderRadius: '12px' }}
+                  formatter={(value: number) => [`$${value.toLocaleString()}`, 'Valor']}
+                />
+                <Line
+                  type="natural"
+                  dataKey="value"
+                  stroke="#60a5fa"
+                  strokeWidth={4}
+                  dot={{ fill: '#60a5fa', r: 5, stroke: '#18181b', strokeWidth: 3 }}
+                />
+              </LineChart>
+            </ResponsiveContainer>
+          </CardContent>
+        </Card>
+
+        {/* Portfolio Distribution */}
+        <Card className="bg-zinc-900 border border-white/10">
+          <CardHeader className="pb-4">
+            <CardTitle className="text-2xl">Distribución de Activos</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {portfolio && portfolio.distribucion.length > 0 ? (
+              <>
+                <ResponsiveContainer width="100%" height={300}>
+                  <RechartsPie>
+                    <Pie
+                      data={portfolio.distribucion}
+                      cx="50%"
+                      cy="50%"
+                      innerRadius={80}
+                      outerRadius={115}
+                      dataKey="valor"
+                    >
+                      {portfolio.distribucion.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={entry.color} />
+                      ))}
+                    </Pie>
+                    <Tooltip
+                      contentStyle={{ backgroundColor: '#ffffff', border: '1px solid #e5e7eb', borderRadius: '12px', color: '#111827', padding: '12px 16px' }}
+                      formatter={(value: number) => [`$${value.toLocaleString()}`, 'Valor']}
+                    />
+                  </RechartsPie>
+                </ResponsiveContainer>
+                <div className="grid grid-cols-2 gap-x-10 gap-y-5 mt-10">
+                  {portfolio.distribucion.map((item, index) => (
+                    <div key={index} className="flex items-center gap-4">
+                      <div className="w-4 h-4 rounded-full" style={{ backgroundColor: item.color }} />
+                      <div className="flex-1">
+                        <p className="text-zinc-300">{item.nombre}</p>
+                      </div>
+                      <p className="font-semibold text-lg">{item.porcentaje}%</p>
+                    </div>
+                  ))}
+                </div>
+              </>
+            ) : (
+              <p className="text-zinc-500 text-center py-20">Añade activos para ver la distribución</p>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Quick Stats */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-12">
+        <Card className="bg-zinc-900 border border-white/10 hover:border-white/20 transition-colors">
+          <CardContent className="p-7">
+            <div className="flex justify-between items-start">
               <div>
-                <p className="text-zinc-400 text-base tracking-wide uppercase">Patrimonio Total</p>
-                <h2 className="text-6xl font-bold tracking-tighter mt-3 text-white">
-                  {(portfolio?.simboloDivisa)}{(portfolio?.patrimonio_total ?? 0).toLocaleString('es-ES')}
-                </h2>
+                <p className="text-zinc-400 text-sm">Patrimonio Total</p>
+                <p className="text-4xl font-bold mt-4">
+                  ${(portfolio?.patrimonio_total ?? 0).toLocaleString('es-ES')}
+                </p>
               </div>
-              <Wallet className="w-20 h-20 text-violet-400 flex-shrink-0 opacity-50" />
+              <Wallet className="w-10 h-10 text-violet-500/30" />
+            </div>
+            <p className="text-sm text-zinc-500 mt-6">{activos.length} activos en cartera</p>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-zinc-900 border border-white/10 hover:border-white/20 transition-colors">
+          <CardContent className="p-7">
+            <div className="flex justify-between items-start">
+              <div>
+                <p className="text-zinc-400 text-sm">Mejor Activo</p>
+                <p className="text-4xl font-bold mt-4">
+                  {portfolio?.mejor_activo?.descripcion ?? '—'}
+                </p>
+                {portfolio?.mejor_activo && (
+                  <p className={`mt-2 ${portfolio.mejor_activo.rentabilidad_pct >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+                    {portfolio.mejor_activo.rentabilidad_pct >= 0 ? '+' : ''}
+                    {portfolio.mejor_activo.rentabilidad_pct}%
+                  </p>
+                )}
+              </div>
+              <ArrowUpRight className="w-10 h-10 text-emerald-500/30" />
             </div>
           </CardContent>
         </Card>
 
-        <Card className="bg-zinc-900 border border-white/10 overflow-hidden">
-          <CardHeader className="pb-6 border-b border-white/5">
-            <CardTitle className="text-2xl text-white">Mis Inversiones</CardTitle>
-        <div className="flex gap-4 mb-4">
-          {/* Selector de divisa */}
-          <select
-            value={divisa}
-            onChange={(e) => setDivisa(e.target.value)}
-            className="bg-zinc-800 border border-zinc-700 rounded px-3 py-2"
-          >
-            <option value="EUR">EUR €</option>
-            <option value="USD">USD $</option>
-            <option value="GBP">GBP ₤</option>
-          </select>
+        <Card className="bg-zinc-900 border border-white/10 hover:border-white/20 transition-colors">
+          <CardContent className="p-7">
+            <div className="flex justify-between items-start">
+              <div>
+                <p className="text-zinc-400 text-sm">Diversificación</p>
+                <p className="text-4xl font-bold mt-4">
+                  {(portfolio?.distribucion.length ?? 0) >= 3
+                    ? 'Buena'
+                    : (portfolio?.distribucion.length ?? 0) >= 1
+                      ? 'Limitada'
+                      : 'Sin datos'}
+                </p>
+              </div>
+              <PieIcon className="w-10 h-10 text-purple-500/30" />
+            </div>
+            <p className="text-sm text-zinc-500 mt-6">
+              {portfolio?.distribucion.length ?? 0} tipos de activos
+            </p>
+          </CardContent>
+        </Card>
+      </div>
 
-          {/* Selector de fecha */}
-          <input
-            type="date"
-            value={fechaInicio}
-            onChange={(e) => setFechaInicio(e.target.value)}
-            className="bg-zinc-800 border border-zinc-700 rounded px-3 py-2"
-          />
-        </div>
-                  <XAxis dataKey="day" stroke="#52525b" />
-                    formatter={(value: number) => [`${value.toLocaleString()}`, 'Valor']}
-          <CardHeader className="pb-6 flex flex-row items-center justify-between">
+      {/* Investments Table */}
+      <Card className="bg-zinc-900 border border-white/10">
+        <CardHeader className="pb-6 flex flex-row items-center justify-between">
+          <CardTitle className="text-2xl">Mis Inversiones</CardTitle>
 
-            {/* Botón Añadir Inversión - Movido aquí y más grande */}
-            <Dialog open={isAddModalOpen} onOpenChange={setIsAddModalOpen}>
-              <DialogTrigger asChild>
-                <Button className="gap-2 bg-white text-black hover:bg-zinc-200 h-11 px-6 text-base font-medium">
-                  <Plus className="w-5 h-5" />
-                  Añadir Inversión
-                </Button>
-              </DialogTrigger>
-              <DialogContent className="bg-zinc-900 border-white/10 text-white sm:max-w-[425px]">
-                <DialogHeader>
-                  <DialogTitle className="text-2xl">Añadir Nueva Inversión</DialogTitle>
-                </DialogHeader>
-                {/* Formulario */}
-                <div className="space-y-5 py-4">
-                  {/* Campo: Activo */}
-                  <div className="space-y-2">
-                    <Label htmlFor="activo">Activo</Label>
-                    <Popover open={openSearch} onOpenChange={(open) => {
-                      setOpenSearch(open);
-                      if (!open) setSearchTerm("");
-                    }}>
-                      <PopoverTrigger asChild>
-                        <div className="relative">
-                          <Input
-                            placeholder="Buscar activo..."
-                            // CAMBIO AQUÍ: Solo mostramos el activo seleccionado si NO hay un término de búsqueda 
-                            // Y el menú está cerrado. Si el menú está abierto, respetamos lo que el usuario escriba (o borre).
-                            value={openSearch
-                              ? searchTerm
-                              : (catalogo.find(a => a.codigo.toString() === selectedActivoId)?.descripcion || "")
+          {/* Botón Añadir Inversión - Movido aquí y más grande */}
+          <Dialog open={isAddModalOpen} onOpenChange={setIsAddModalOpen}>
+            <DialogTrigger asChild>
+              <Button className="gap-2 bg-white text-black hover:bg-zinc-200 h-11 px-6 text-base font-medium">
+                <Plus className="w-5 h-5" />
+                Añadir Inversión
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="bg-zinc-900 border-white/10 text-white sm:max-w-[425px]">
+              <DialogHeader>
+                <DialogTitle className="text-2xl">Añadir Nueva Inversión</DialogTitle>
+              </DialogHeader>
+              {/* Formulario */}
+              <div className="space-y-5 py-4">
+                {/* Campo: Activo */}
+                <div className="space-y-2">
+                  <Label htmlFor="activo">Activo</Label>
+                  <Popover open={openSearch} onOpenChange={(open) => {
+                    setOpenSearch(open);
+                    if (!open) setSearchTerm("");
+                  }}>
+                    <PopoverTrigger asChild>
+                      <div className="relative">
+                        <Input
+                          placeholder="Buscar activo..."
+                          // CAMBIO AQUÍ: Solo mostramos el activo seleccionado si NO hay un término de búsqueda
+                          // Y el menú está cerrado. Si el menú está abierto, respetamos lo que el usuario escriba (o borre).
+                          value={openSearch
+                            ? searchTerm
+                            : (catalogo.find(a => a.codigo.toString() === selectedActivoId)?.descripcion || "")
+                          }
+                          onChange={(e) => {
+                            setSearchTerm(e.target.value);
+                            if (!openSearch) setOpenSearch(true);
+                          }}
+                          // Añadimos esto para que al hacer clic se limpie visualmente y deje buscar
+                          onFocus={() => {
+                            if (selectedActivoId) {
                             }
-                            onChange={(e) => {
-                              setSearchTerm(e.target.value);
-                              if (!openSearch) setOpenSearch(true);
-                            }}
-                            // Añadimos esto para que al hacer clic se limpie visualmente y deje buscar
-                            onFocus={() => {
-                              if (selectedActivoId) {
-                              }
-                            }}
-                            className="bg-zinc-950 border-white/10 text-white placeholder:text-zinc-500 h-11 pr-10 focus-visible:ring-violet-500 cursor-text"
-                          />
-                          <Search className="absolute right-3 top-3 h-5 w-5 text-zinc-500 pointer-events-none" />
-                        </div>
-                      </PopoverTrigger>
+                          }}
+                          className="bg-zinc-950 border-white/10 text-white placeholder:text-zinc-500 h-11 pr-10 focus-visible:ring-violet-500 cursor-text"
+                        />
+                        <Search className="absolute right-3 top-3 h-5 w-5 text-zinc-500 pointer-events-none" />
+                      </div>
+                    </PopoverTrigger>
 
-                      <PopoverContent
-                        className="w-[var(--radix-popover-trigger-width)] p-0 bg-white border-none shadow-2xl"
-                        align="start"
-                        // Esto es CLAVE: Evita que el Popover atrape el foco y bloquee el scroll
-                        onOpenAutoFocus={(e) => e.preventDefault()}
-                      >
-                        {/* Usamos un div normal con scroll en lugar de <Command> para evitar bloqueos de eventos */}
-                        <div className="max-h-[280px] overflow-y-auto overflow-x-hidden py-1">
-                          {catalogo
+                    <PopoverContent
+                      className="w-[var(--radix-popover-trigger-width)] p-0 bg-white border-none shadow-2xl"
+                      align="start"
+                      // Esto es CLAVE: Evita que el Popover atrape el foco y bloquee el scroll
+                      onOpenAutoFocus={(e) => e.preventDefault()}
+                    >
+                      {/* Usamos un div normal con scroll en lugar de <Command> para evitar bloqueos de eventos */}
+                      <div className="max-h-[280px] overflow-y-auto overflow-x-hidden py-1">
+                        {catalogo
+                          .filter(activo =>
+                            searchTerm === "" ||
+                            activo.descripcion.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                            activo.simbolo?.toLowerCase().includes(searchTerm.toLowerCase())
+                          )
+                          .length === 0 ? (
+                          <div className="py-6 text-center text-xs text-zinc-500">
+                            No se encontraron activos.
+                          </div>
+                        ) : (
+                          catalogo
                             .filter(activo =>
                               searchTerm === "" ||
                               activo.descripcion.toLowerCase().includes(searchTerm.toLowerCase()) ||
                               activo.simbolo?.toLowerCase().includes(searchTerm.toLowerCase())
                             )
-                            .length === 0 ? (
-                            <div className="py-6 text-center text-xs text-zinc-500">
-                              No se encontraron activos.
-                            </div>
-                          ) : (
-                            catalogo
-                              .filter(activo =>
-                                searchTerm === "" ||
-                                activo.descripcion.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                                activo.simbolo?.toLowerCase().includes(searchTerm.toLowerCase())
-                              )
-                              .map((activo) => (
-                                <div
-                                  key={activo.codigo}
-                                  onClick={() => {
-                                    setSelectedActivoId(activo.codigo.toString());
-                                    setSearchTerm("");
-                                    setOpenSearch(false);
-                                  }}
-                                  className={cn(
-                                    "flex items-center justify-between py-3 px-4 cursor-pointer transition-colors border-b border-zinc-100 last:border-none hover:bg-zinc-50",
-                                    selectedActivoId === activo.codigo.toString() ? "bg-zinc-50" : ""
-                                  )}
-                                >
-                                  <div className="flex flex-col gap-0.5">
-                                    <span className="font-semibold text-sm leading-tight text-zinc-900">
-                                      {activo.descripcion}
+                            .map((activo) => (
+                              <div
+                                key={activo.codigo}
+                                onClick={() => {
+                                  setSelectedActivoId(activo.codigo.toString());
+                                  setSearchTerm("");
+                                  setOpenSearch(false);
+                                }}
+                                className={cn(
+                                  "flex items-center justify-between py-3 px-4 cursor-pointer transition-colors border-b border-zinc-100 last:border-none hover:bg-zinc-50",
+                                  selectedActivoId === activo.codigo.toString() ? "bg-zinc-50" : ""
+                                )}
+                              >
+                                <div className="flex flex-col gap-0.5">
+                                  <span className="font-semibold text-sm leading-tight text-zinc-900">
+                                    {activo.descripcion}
+                                  </span>
+                                  {activo.simbolo && (
+                                    <span className="text-[10px] text-zinc-400 font-bold uppercase tracking-wider">
+                                      {activo.simbolo}
                                     </span>
-                                    {activo.simbolo && (
-                                      <span className="text-[10px] text-zinc-400 font-bold uppercase tracking-wider">
-                                        {activo.simbolo}
-                                      </span>
-                                    )}
-                                  </div>
-                                  {selectedActivoId === activo.codigo.toString() && (
-                                    <Check className="h-4 w-4 text-violet-600" />
                                   )}
                                 </div>
-                              ))
-                          )}
-                        </div>
-                      </PopoverContent>
-                    </Popover>
-                  </div>
+                                {selectedActivoId === activo.codigo.toString() && (
+                                  <Check className="h-4 w-4 text-violet-600" />
+                                )}
+                              </div>
+                            ))
+                        )}
+                      </div>
+                    </PopoverContent>
+                  </Popover>
+                </div>
 
-                  {/* Campo: Cantidad */}
-                  <div className="space-y-2">
-                    <Label htmlFor="cantidad">Cantidad</Label>
+                {/* Campo: Cantidad */}
+                <div className="space-y-2">
+                  <Label htmlFor="cantidad">Cantidad</Label>
+                  <Input
+                    id="cantidad"
+                    type="number"
+                    step="any"
+                    min="0"
+                    value={cantidad}
+                    onChange={(e) => setCantidad(e.target.value)}
+                    placeholder="Ej: 1.5"
+                    className="bg-zinc-950 border-white/10 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                  />
+                </div>
+
+                {/* Campo: Precio de Compra con Indicador de Divisa */}
+                <div className="space-y-2">
+                  <Label htmlFor="precio">Precio de Compra (Opcional)</Label>
+                  <div className="relative">
                     <Input
-                      id="cantidad"
+                      id="precio"
                       type="number"
                       step="any"
                       min="0"
-                      value={cantidad}
-                      onChange={(e) => setCantidad(e.target.value)}
-                      placeholder="Ej: 1.5"
-                      className="bg-zinc-950 border-white/10 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                      value={precioCompra}
+                      onChange={(e) => setPrecioCompra(e.target.value)}
+                      className="bg-zinc-950 border-white/10 pr-16"
                     />
+                    {activoSeleccionado && (
+                      <div className="absolute inset-y-0 right-3 flex items-center pointer-events-none">
+                        <span className="text-zinc-500 text-sm font-medium">
+                          {activoSeleccionado.divisacodigo}
+                        </span>
+                      </div>
+                    )}
                   </div>
-
-                  {/* Campo: Precio de Compra con Indicador de Divisa */}
-                  <div className="space-y-2">
-                    <Label htmlFor="precio">Precio de Compra (Opcional)</Label>
-                    <div className="relative">
-                      <Input
-                        id="precio"
-                        type="number"
-                        step="any"
-                        min="0"
-                        value={precioCompra}
-                        onChange={(e) => setPrecioCompra(e.target.value)}
-                        className="bg-zinc-950 border-white/10 pr-16"
-                      />
-                      {activoSeleccionado && (
-                        <div className="absolute inset-y-0 right-3 flex items-center pointer-events-none">
-                          <span className="text-zinc-500 text-sm font-medium">
-                            {activoSeleccionado.divisacodigo}
-                          </span>
-                        </div>
-                      )}
-                    </div>
-                    <p className="text-[10px] text-zinc-500 italic">Dejar en 0 si se desconoce.</p>
-                  </div>
-
-                  {/* Campo: Fecha de Compra */}
-                  <div className="space-y-2">
-                    <Label htmlFor="fecha">Fecha de Compra</Label>
-                    <Input
-                      id="fecha"
-                      type="date"
-                      value={fechaCompra}
-                      onChange={(e) => setFechaCompra(e.target.value)}
-                      className="bg-zinc-950 border-white/10 color-scheme-dark"
-                    />
-                  </div>
-
-                  {/* Botones de acción */}
-                  <div className="flex gap-3 pt-4">
-                    <Button onClick={handleAddInversion} disabled={adding} className="flex-1 bg-white text-black hover:bg-zinc-200">
-                      {adding ? "Añadiendo..." : "Confirmar Inversión"}
-                    </Button>
-                    <Button variant="outline" onClick={() => setIsAddModalOpen(false)} className="flex-1 border-white/10 hover:bg-zinc-800">
-                      Cancelar
-                    </Button>
-                  </div>
+                  <p className="text-[10px] text-zinc-500 italic">Dejar en 0 si se desconoce.</p>
                 </div>
-              </DialogContent>
-            </Dialog>
-          </CardHeader>
-          <CardContent className="p-0">
-            {activosFiltrados.length === 0 ? (
-              <div className="text-center py-20">
-                 <p className="text-zinc-500 text-xl">No tienes activos con balance positivo.</p>
-                 <Link href="/dashboard/nuevo-activo" className="text-violet-400 hover:underline mt-2 inline-block">Añade tu primera inversión</Link>
-                        formatter={(value: number) => [`${portfolio.simboloDivisa}${value.toLocaleString()}`, 'Valor']}
-                    {(portfolio?.simboloDivisa)}{(portfolio?.patrimonio_total ?? 0).toLocaleString('es-ES')}
+
+                {/* Campo: Fecha de Compra */}
+                <div className="space-y-2">
+                  <Label htmlFor="fecha">Fecha de Compra</Label>
+                  <Input
+                    id="fecha"
+                    type="date"
+                    value={fechaCompra}
+                    onChange={(e) => setFechaCompra(e.target.value)}
+                    className="bg-zinc-950 border-white/10 color-scheme-dark"
+                  />
+                </div>
+
+                {/* Botones de acción */}
+                <div className="flex gap-3 pt-4">
+                  <Button onClick={handleAddInversion} disabled={adding} className="flex-1 bg-white text-black hover:bg-zinc-200">
+                    {adding ? "Añadiendo..." : "Confirmar Inversión"}
+                  </Button>
+                  <Button variant="outline" onClick={() => setIsAddModalOpen(false)} className="flex-1 border-white/10 hover:bg-zinc-800">
+                    Cancelar
+                  </Button>
+                </div>
               </div>
-            ) : (
-              <Table>
-                <TableHeader className="bg-white/5">
-                  <TableRow className="border-b border-white/10 hover:bg-transparent">
-                    <TableHead className="text-zinc-400 py-4 px-6">Activo</TableHead>
-                    <TableHead className="text-right text-zinc-400 py-4 px-6">Cantidad</TableHead>
-                    <TableHead className="text-right text-zinc-400 py-4 px-6">Valor Total</TableHead>
-                    <TableHead className="text-right text-zinc-400 py-4 px-6 w-[80px]">Acción</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {activosFiltrados.map((pos, index) => {
-                    const datosActivo = (pos as any).activos;
-                    // Extraemos la información del activo (ahora agrupado)
-                    const nombreDisplay = datosActivo?.descripcion || `Activo #${pos.activocodigo}`;
-                    
-                    return (
-                      <TableRow key={pos.idrelacion} className="border-b border-white/10 hover:bg-zinc-800/50 transition-colors">
-                        <TableCell className="font-medium text-lg text-white py-6 px-6">
-                        {/* Columna: Identificación del Activo */}
-                          {/* [UC08] Enlace a la página de detalle de inversión */}
-                          <Link 
-                            href={`/dashboard/activos/${pos.activocodigo}`}
-                            className="hover:text-violet-400 transition-colors"
+            </DialogContent>
+          </Dialog>
+        </CardHeader>
+        <CardContent>
+          {activos.length === 0 ? (
+            <p className="text-zinc-500 text-center py-20">
+              No tienes activos aún. Añade tu primera inversión.
+            </p>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow className="border-b border-white/10 hover:bg-transparent">
+                  <TableHead className="text-zinc-400 font-normal">Activo</TableHead>
+                  <TableHead className="text-zinc-400 font-normal">Tipo</TableHead>
+                  <TableHead className="text-right text-zinc-400 font-normal">Cantidad</TableHead>
+                  <TableHead className="text-right text-zinc-400 font-normal">Precio Actual</TableHead>
+                  <TableHead className="text-right text-zinc-400 font-normal">Rentabilidad</TableHead>
+                  <TableHead className="text-right text-zinc-400 font-normal">Valor Total</TableHead>
+                  <TableHead className="w-24"></TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {activos.map((pos) => {
+                  // Extraemos la información del activo (ahora agrupado)
+                  const activo = pos.activos as any;
+                  const tipo = activo?.tiposactivos?.descripcion ?? activo?.tipocodigo ?? '—';
+                  const color = activo?.color ?? '#6366f1';
+                  const descripcion = activo?.descripcion ?? String(pos.activocodigo);
+
+                  return (
+                    <TableRow key={pos.activocodigo} className="border-b border-white/10 hover:bg-zinc-800/50 transition-colors">
+                      {/* Columna: Identificación del Activo */}
+                      <TableCell>
+                        <div className="flex items-center gap-4">
+                          <div
+                            className="w-11 h-11 rounded-2xl flex items-center justify-center text-white font-medium text-lg"
+                            style={{ backgroundColor: color }}
                           >
-                            {nombreDisplay}
+                            {descripcion.substring(0, 2).toUpperCase()}
+                          </div>
+                          <div>
+                            <p className="font-medium text-lg">{descripcion}</p>
+                            <p className="text-sm text-zinc-500">#{pos.activocodigo}</p>
+                          </div>
+                        </div>
+                      </TableCell>
+
+                      {/* Columna: Badge de Tipo */}
+                      <TableCell>
+                        <Badge variant="secondary" className="bg-zinc-800 text-zinc-300 px-4 py-1">
+                          {tipo}
+                        </Badge>
+                      </TableCell>
+
+                      {/* Columna: Cantidad (Sumada en el reduce) */}
+                      <TableCell className="text-right font-medium text-lg">
+                        {pos.cantidad.toLocaleString()}
+                      </TableCell>
+
+                      {/* Columna: Precio Actual */}
+                      <TableCell className="text-right text-lg">
+                        ${pos.precio_actual.toLocaleString('es-ES', { minimumFractionDigits: 2 })}
+                      </TableCell>
+
+                      {/* Columna: Rentabilidad (Calculada ponderada en el reduce) */}
+                      <TableCell className="text-right">
+                        <div className={`flex items-center justify-end gap-1.5 text-lg ${pos.rentabilidad_pct >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+                          {pos.rentabilidad_pct >= 0 ? <ArrowUpRight className="w-5 h-5" /> : <ArrowDownRight className="w-5 h-5" />}
+                          {/* Limitamos los decimales a 2 */}
+                          <span>{Math.abs(pos.rentabilidad_pct).toFixed(2)}%</span>
+                        </div>
+                      </TableCell>
+
+                      {/* Columna: Valor Total (Sumado en el reduce) */}
+                      <TableCell className="text-right font-semibold text-lg">
+                        ${pos.valor_total.toLocaleString('es-ES')}
+                      </TableCell>
+
+                      {/* Columna: Acciones */}
+                      <TableCell className="text-right">
+                        <Button variant="link" size="sm" asChild className="text-blue-400 hover:text-blue-300">
+                          <Link href={`/dashboard/investments/${pos.activocodigo}`}>
+                            Detalles →
                           </Link>
-                          {(pos.simbolo_divisa)}{pos.precio_actual.toLocaleString('es-ES', { minimumFractionDigits: 2 })}
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
+          )}
+        </CardContent>
+      </Card>
+    </div>
+  </div >
+);
 
-                        {/* Columna: Badge de Tipo */}
-                        {/* Columna: Cantidad (Sumada en el reduce) */}
-                        <TableCell className="text-right font-medium text-lg">
-                          {pos.cantidad.toLocaleString()}
-                        </TableCell>
-
-                        {/* Columna: Precio Actual */}
-                        </TableCell>
-                        <TableCell className="text-right text-lg text-zinc-300 py-6 px-6">
-                          {Number(pos.cantidad).toLocaleString('es-ES')}
-
-                        {/* Columna: Rentabilidad (Calculada ponderada en el reduce) */}
-                            {/* Limitamos los decimales a 2 */}
-                            <span>{Math.abs(pos.rentabilidad_pct).toFixed(2)}%</span>
-                        </TableCell>
-                        <TableCell className="text-right font-bold text-lg text-emerald-400 py-6 px-6">
-                          {(pos.simbolo_divisa)}{pos.valor_total.toLocaleString('es-ES')}
-
-                        {/* Columna: Valor Total (Sumado en el reduce) */}
-                        </TableCell>
-                        <TableCell className="text-right py-6 px-6">
-                          {/* [UC08] Botón eliminar con confirmación */}
-
-                        {/* Columna: Acciones */}
-                          <Button 
-                            variant="ghost" 
-                            size="icon"
-                            onClick={() => eliminarActivo(pos.activocodigo)}
-                            className="text-zinc-500 hover:text-red-500 hover:bg-red-500/10 transition-all rounded-full"
-                          >
-                            <Trash2 className="w-5 h-5" />
-                          </Button>
-                        </TableCell>
-                      </TableRow>
-                    );
-                  })}
-                </TableBody>
-              </Table>
-            )}
-          </CardContent>
-        </Card>
-      </div>
-    </div >
-  );
 }
