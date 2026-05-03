@@ -310,7 +310,7 @@ export default function DetallesInversion() {
                         {compra.cantidad.toLocaleString('es-ES')} {simbolo}
                       </td>
                       <td className="py-4 text-right text-zinc-300">
-                        {activo.simbolo_divisa}{compra.precio_compra.toLocaleString('es-ES')}
+                        {compra.simbolo_divisa}{compra.precio_compra.toLocaleString('es-ES')}
                       </td>
                       <td className="py-4 text-right">
                         <Button

@@ -24,29 +24,6 @@ import type { ActivoPoseidoConPrecio, ResumenPortfolio, Activo, HistoricalDataGl
 
 
 export default function Dashboard() {
-    const convertirDivisa = async (cantidad, origen, destino, fecha) => {
-      const res = await fetch('/api/cambios', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          cantidad,
-          origen,
-          destino,
-          fecha
-        })
-      });
-
-      console.log("STATUS CAMBIOS:", res.status);
-
-      const text = await res.text();
-      console.log("RESPUESTA RAW:", text);
-
-      const data = JSON.parse(text);
-
-      return data.resultado;
-    };
 
   const [activos, setActivos] = useState<ActivoPoseidoConPrecio[]>([]);
   const [portfolio, setPortfolio] = useState<ResumenPortfolio | null>(null);

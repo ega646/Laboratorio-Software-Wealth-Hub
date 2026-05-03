@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import type { ActivoPoseidoConPrecio, NuevaPosition } from '@/lib/types'
+import { convertirDivisa } from '@/app/api/cambios/route'
 
 // GET /api/activos -> Listar todos los activos del usuario
 export async function GET() {
@@ -13,6 +14,7 @@ export async function GET() {
   const { data: posiciones, error } = await supabase
     .from('activosposeidos')
     .select(`
+      perfiles(id, divisas(codigo, simbolo_divisa)),
       usuario_id,
       activocodigo,
       cantidad,
@@ -55,24 +57,42 @@ export async function GET() {
   }
 
   // 3. Combinar y calcular valores derivados
-  const resultado: ActivoPoseidoConPrecio[] = posiciones.map(p => {
-    const precio = precioActual[p.activocodigo] ?? 0
-    const valorTotal = p.cantidad * precio
-    const simbolo    = p.activos?.divisas?.simbolo_divisa
-    const rentabilidad = p.precio_compra > 0
-      ? ((precio - p.precio_compra) / p.precio_compra) * 100
-      : 0
-    const relacion = p.idrelacion
+  const resultado: ActivoPoseidoConPrecio[] = await Promise.all(
+    posiciones.map(async (p) => {
 
-    return {
-      ...p,
-      simbolo_divisa: simbolo,
-      precio_actual: precio,
-      valor_total: Math.round(valorTotal * 100) / 100,
-      rentabilidad_pct: Math.round(rentabilidad * 100) / 100,
-      idrelacion: relacion
-    } as ActivoPoseidoConPrecio
-  })
+      const precioBase = precioActual[p.activocodigo] ?? 0
+
+      const precio = await convertirDivisa(
+        precioBase,
+        p.activos?.divisas?.codigo,
+        p.perfiles?.divisas?.codigo,
+        new Date(),
+      )
+
+      const precioCompraConvertido = await convertirDivisa(
+        p.precio_compra,
+        p.activos?.divisas?.codigo,
+        p.perfiles?.divisas?.codigo,
+        new Date(),
+      )
+
+      const valorTotal = p.cantidad * precio
+      const simbolo = p.perfiles?.divisas?.simbolo_divisa
+
+      const rentabilidad =
+        precioCompraConvertido > 0
+          ? ((precio - precioCompraConvertido) / precioCompraConvertido) * 100
+          : 0
+
+      return {
+        ...p,
+        simbolo_divisa: simbolo,
+        precio_actual: precio,
+        valor_total: Math.round(valorTotal * 100) / 100,
+        rentabilidad_pct: Math.round(rentabilidad * 100) / 100,
+      } as ActivoPoseidoConPrecio
+    })
+  )
 
   return NextResponse.json(resultado)
 }

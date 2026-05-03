@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import type { ActivoPoseidoConPrecio } from '@/lib/types'
-
+import { convertirDivisa } from '@/app/api/cambios/route'
 
 // GET /api/activos/[id] -> Detalles y cálculos de un activo
 export async function GET(
@@ -22,6 +22,10 @@ export async function GET(
       .from('activosposeidos')
       .select(`
         id,
+        perfiles(
+            id,
+            divisas (codigo, simbolo_divisa)
+            ),
         usuario_id,
         activocodigo,
         cantidad,
@@ -46,29 +50,40 @@ export async function GET(
     return NextResponse.json({ error: 'Activo no encontrado' }, { status: 404 })
   }
 
-  const simboloDivisa = posiciones.activos?.divisas?.simbolo_divisa
+  const simboloDivisa = posiciones[0]?.perfiles?.divisas?.simbolo_divisa
 
   // 2. Obtener histórico de precios usando el mismo ID
-  const { data: historico } = await supabase
-    .from('valorhistoricoactivo')
-    .select('valor, fecha')
-    .eq('activocodigo', id) // Cambiado activoBusqueda por id
-    .order('fecha', { ascending: false })
+  const { data: historico, error } = await supabase.rpc(
+    'get_historico_activo',
+    { p_activocodigo: id,
+      p_origen: posiciones[0].activos?.divisas?.codigo,
+      p_destino: posiciones[0].perfiles?.divisas?.codigo
+    }
+  )
 
-
-    const precioActual = historico && historico.length > 0 ? Number(historico[0].valor) : 0
-    console.log('El precio actual es: ' + precioActual)
-    const valorTotal = posiciones.cantidad * precioActual
-    const rentabilidad = posiciones.precio_compra > 0
-      ? ((precioActual - posiciones.precio_compra) / posiciones.precio_compra) * 100
-      : 0
+  const precioActual = historico && historico.length > 0 ? Number(historico[0].valor) : 0
+  const precioCompra_convertida = await convertirDivisa(
+              posiciones[0].precio_compra,
+              posiciones[0].activos?.divisas?.codigo,
+              posiciones[0].perfiles?.divisas?.codigo,
+              posiciones[0].fechainicio,
+            )
+  const valorTotal = posiciones.cantidad * precioActual
+  const rentabilidad = precioCompra_convertida > 0
+    ? ((precioActual - precioCompra_convertida) / precioCompra_convertida) * 100
+    : 0
 
   // 3. Cálculos de consolidación
   const totalCantidad = posiciones.reduce((acc, curr) => acc + curr.cantidad, 0)
   const costeTotal = posiciones.reduce((acc, curr) => acc + (curr.cantidad * curr.precio_compra), 0)
-  const precioMedioCompra = totalCantidad > 0 ? costeTotal / totalCantidad : 0
 
-
+  const costeTotal_convertida = await convertirDivisa(
+            costeTotal,
+            posiciones[0].activos?.divisas?.codigo,
+            posiciones[0].perfiles?.divisas?.codigo,
+            new Date(),
+          )
+  const precioMedioCompra = totalCantidad > 0 ? costeTotal_convertida / totalCantidad : 0
   // 4. Respuesta unificada
   return NextResponse.json({
     activocodigo: id, // Cambiado activoBusqueda por id
@@ -79,10 +94,11 @@ export async function GET(
     activos: posiciones[0].activos,
     historico: historico || [],
     compras: posiciones.map(p => ({
-      id: p.id,
-      cantidad: p.cantidad,
+      id:            p.id,
+      cantidad:      p.cantidad,
       precio_compra: p.precio_compra,
-      fechainicio: p.fechainicio
+      fechainicio:   p.fechainicio,
+      simbolo_divisa:  p.activos?.divisas?.simbolo_divisa
     }))
   })
 }
