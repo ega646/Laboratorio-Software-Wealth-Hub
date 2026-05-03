@@ -21,7 +21,7 @@ export async function GET(
     const { data: posiciones, error: errorPos } = await supabase
       .from('activosposeidos')
       .select(`
-          id,
+        id,
         usuario_id,
         activocodigo,
         cantidad,
@@ -31,10 +31,10 @@ export async function GET(
           codigo,
           descripcion,
           tipocodigo,
-          divisacodigo,
           color,
           simbolo,
-          tiposactivos ( codigo, descripcion, riesgocodigo )
+          tiposactivos ( codigo, descripcion, riesgocodigo ),
+          divisas (codigo, simbolo_divisa)
         )
       `)
       .eq('usuario_id', user.id)
@@ -46,14 +46,18 @@ export async function GET(
     return NextResponse.json({ error: 'Activo no encontrado' }, { status: 404 })
   }
 
+  const simboloDivisa = posiciones.activos?.divisas?.simbolo_divisa
+
   // 2. Obtener histórico de precios usando el mismo ID
   const { data: historico } = await supabase
     .from('valorhistoricoactivo')
     .select('valor, fecha')
     .eq('activocodigo', id) // Cambiado activoBusqueda por id
-    .order('fecha', { ascending: true })
+    .order('fecha', { ascending: false })
+
 
     const precioActual = historico && historico.length > 0 ? Number(historico[0].valor) : 0
+    console.log('El precio actual es: ' + precioActual)
     const valorTotal = posiciones.cantidad * precioActual
     const rentabilidad = posiciones.precio_compra > 0
       ? ((precioActual - posiciones.precio_compra) / posiciones.precio_compra) * 100
@@ -64,12 +68,14 @@ export async function GET(
   const costeTotal = posiciones.reduce((acc, curr) => acc + (curr.cantidad * curr.precio_compra), 0)
   const precioMedioCompra = totalCantidad > 0 ? costeTotal / totalCantidad : 0
 
+
   // 4. Respuesta unificada
   return NextResponse.json({
     activocodigo: id, // Cambiado activoBusqueda por id
     cantidad: totalCantidad,
     precio_compra: precioMedioCompra,
     precio_actual: precioActual,
+    simbolo_divisa: simboloDivisa,
     activos: posiciones[0].activos,
     historico: historico || [],
     compras: posiciones.map(p => ({

@@ -105,7 +105,6 @@ export default function DetallesInversion() {
   const simbolo = info?.simbolo ?? nombre.substring(0, 4).toUpperCase()
   const color = info?.color ?? '#6366f1'
   const tipoLabel = info?.tiposactivos?.descripcion ?? info?.tipocodigo ?? '—'
-  const divisaSimbolo = info?.divisacodigo === 'EUR' ? '€' : info?.divisacodigo === 'GBP' ? '£' : '$'
 
   const valorTotal = activo.cantidad * activo.precio_actual
   const ganancia = valorTotal - activo.cantidad * activo.precio_compra
@@ -155,7 +154,7 @@ export default function DetallesInversion() {
                 <div className="text-right">
                   <p className="text-zinc-500 text-xl">Precio Actual</p>
                   <p className="text-6xl font-bold mt-3 tracking-tighter text-white">
-                    {divisaSimbolo}{activo.precio_actual.toLocaleString('es-ES')}
+                    {activo.simbolo_divisa}{activo.precio_actual.toLocaleString('es-ES')}
                   </p>
                   <div className={`flex items-center justify-end gap-3 mt-6 text-2xl ${gananciaPercent >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
                     {gananciaPercent >= 0 ? <TrendingUp className="w-7 h-7" /> : <TrendingDown className="w-7 h-7" />}
@@ -228,7 +227,7 @@ export default function DetallesInversion() {
                   <span className="text-sm font-medium">Valor Total Actual</span>
                 </div>
                 <p className="text-4xl font-semibold text-white">
-                  {divisaSimbolo}{valorTotal.toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  {activo.simbolo_divisa}{valorTotal.toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                 </p>
               </div>
 
@@ -238,7 +237,7 @@ export default function DetallesInversion() {
                   <span className="text-sm font-medium">Precio Promedio de Compra</span>
                 </div>
                 <p className="text-4xl font-semibold text-white">
-                  {divisaSimbolo}{activo.precio_compra.toLocaleString('es-ES')}
+                  {activo.simbolo_divisa}{activo.precio_compra.toLocaleString('es-ES')}
                 </p>
               </div>
 
@@ -248,7 +247,7 @@ export default function DetallesInversion() {
                   <span className="text-sm font-medium">Ganancia / Pérdida</span>
                 </div>
                 <p className={`text-4xl font-semibold ${ganancia >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
-                  {ganancia >= 0 ? '+' : ''}{divisaSimbolo}{Math.abs(ganancia).toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  {ganancia >= 0 ? '+' : ''}{activo.simbolo_divisa}{Math.abs(ganancia).toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                 </p>
                 <p className={`text-xl ${ganancia >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
                   ({Math.round(gananciaPercent * 100) / 100}%)
@@ -274,7 +273,7 @@ export default function DetallesInversion() {
                 data={activo.historico}
                 color={color}
                 height={440}
-                currency={divisaSimbolo}
+                currency={activo.simbolo_divisa}
               />
             ) : (
               <div className="flex items-center justify-center h-48 text-zinc-500">
@@ -311,7 +310,7 @@ export default function DetallesInversion() {
                         {compra.cantidad.toLocaleString('es-ES')} {simbolo}
                       </td>
                       <td className="py-4 text-right text-zinc-300">
-                        {divisaSimbolo}{compra.precio_compra.toLocaleString('es-ES')}
+                        {activo.simbolo_divisa}{compra.precio_compra.toLocaleString('es-ES')}
                       </td>
                       <td className="py-4 text-right">
                         <Button
