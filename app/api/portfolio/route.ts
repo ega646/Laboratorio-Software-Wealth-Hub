@@ -132,6 +132,7 @@ for (const h of historicos ?? []) {
     : null
 
   return NextResponse.json({
+    divisaFinal,
     simboloDivisa,
     patrimonio_total: Math.round(patrimonio_total * 100) / 100,
     distribucion,

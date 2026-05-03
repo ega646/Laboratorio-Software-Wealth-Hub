@@ -24,6 +24,30 @@ import type { ActivoPoseidoConPrecio, ResumenPortfolio, Activo, HistoricalDataGl
 
 
 export default function Dashboard() {
+    const convertirDivisa = async (cantidad, origen, destino, fecha) => {
+      const res = await fetch('/api/cambios', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          cantidad,
+          origen,
+          destino,
+          fecha
+        })
+      });
+
+      console.log("STATUS CAMBIOS:", res.status);
+
+      const text = await res.text();
+      console.log("RESPUESTA RAW:", text);
+
+      const data = JSON.parse(text);
+
+      return data.resultado;
+    };
+
   const [activos, setActivos] = useState<ActivoPoseidoConPrecio[]>([]);
   const [portfolio, setPortfolio] = useState<ResumenPortfolio | null>(null);
   const [divisa, setDivisa]           = useState('EUR')
@@ -644,7 +668,7 @@ export default function Dashboard() {
 
                         {/* Columna: Precio Actual */}
                         <TableCell className="text-right text-lg">
-                           {(pos.simboloDivisa)}{pos.precio_actual.toLocaleString('es-ES', { minimumFractionDigits: 2 })}
+                           {(portfolio.simboloDivisa)}{pos.precio_actual.toLocaleString('es-ES', { minimumFractionDigits: 2 })}
                         </TableCell>
 
                         {/* Columna: Rentabilidad (Calculada ponderada en el reduce) */}
@@ -658,7 +682,7 @@ export default function Dashboard() {
 
                         {/* Columna: Valor Total (Sumado en el reduce) */}
                         <TableCell className="text-right font-semibold text-lg">
-                           {(pos.simboloDivisa)}{pos.valor_total.toLocaleString('es-ES')}
+                           {(portfolio.simboloDivisa)}{pos.valor_total.toLocaleString('es-ES')}
                         </TableCell>
 
                         {/* Columna: Acciones */}

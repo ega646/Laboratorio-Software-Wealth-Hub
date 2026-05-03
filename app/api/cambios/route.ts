@@ -23,3 +23,27 @@ export async function convertirDivisa(
 
   return Number(data)
 }
+
+export async function POST(req: Request) {
+  try {
+    const { cantidad, origen, destino, fecha } = await req.json();
+
+    const supabase = await createClient()
+
+      const { data, error } = await supabase.rpc('convertir_divisa', {
+        p_valor: cantidad,
+        p_divisa_origen: origen,
+        p_divisa_destino: destino,
+        p_fecha: fecha,
+      })
+    console.log('Cambio de '+cantidad+origen+' a '+data+destino)
+    return Response.json({data});
+
+  } catch (error) {
+      console.log("Error en convertir divisa "+error.message)
+    return new Response(
+      JSON.stringify({ error: 'Error al convertir divisa' }),
+      { status: 500 }
+    );
+  }
+}
