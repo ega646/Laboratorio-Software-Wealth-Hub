@@ -280,14 +280,21 @@ export default function Dashboard() {
               <ResponsiveContainer width="100%" height={300}>
                 <LineChart data={historicalData}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#27272a" />
-                  <XAxis dataKey="day" stroke="#52525b" />
+                  <XAxis
+                    dataKey="day"
+                    tickFormatter={(value) => {
+                      const date = new Date(value)
+                      return date.toLocaleDateString('es-ES', { day: '2-digit', month: 'short' })
+                    }}
+                    interval="preserveStartEnd"
+                  />
                   <YAxis stroke="#52525b" />
                   <Tooltip
                     contentStyle={{ backgroundColor: '#18181b', border: 'none', borderRadius: '12px' }}
                     formatter={(value: number) => [`${value.toLocaleString()}`, 'Valor']}
                   />
                   <Line
-                    type="natural"
+                    type="linear"
                     dataKey="value"
                     stroke="#60a5fa"
                     strokeWidth={4}

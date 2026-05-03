@@ -22,7 +22,7 @@ function formatFecha(fecha: string): string {
 export function PriceChart({ data, color = '#60a5fa', height = 300, currency = '$' }: Props) {
   // El historico de la API viene en orden descendente; el gráfico necesita ascendente
   const chartData = [...data].reverse().map(p => ({
-    fecha: formatFecha(p.fecha),
+    fecha: p.fecha,          // ← RAW
     valor: p.valor,
   }))
 
@@ -40,7 +40,17 @@ export function PriceChart({ data, color = '#60a5fa', height = 300, currency = '
           </linearGradient>
         </defs>
         <CartesianGrid strokeDasharray="3 3" stroke="#27272a" />
-        <XAxis dataKey="fecha" stroke="#52525b" tick={{ fontSize: 12 }} />
+        <XAxis
+          dataKey="fecha"
+          stroke="#52525b"
+          tick={{ fontSize: 12 }}
+          minTickGap={40}
+          interval="preserveStartEnd"
+          tickFormatter={(value) => {
+            const d = new Date(value)
+            return d.toLocaleDateString('es-ES', { day: '2-digit', month: 'short' })
+          }}
+        />
         <YAxis
           stroke="#52525b"
           tick={{ fontSize: 12 }}
@@ -56,7 +66,7 @@ export function PriceChart({ data, color = '#60a5fa', height = 300, currency = '
           formatter={(value: number) => [`${currency}${value.toLocaleString('es-ES')}`, 'Precio']}
         />
         <Area
-          type="natural"
+          type="linear"
           dataKey="valor"
           stroke={color}
           strokeWidth={3}
