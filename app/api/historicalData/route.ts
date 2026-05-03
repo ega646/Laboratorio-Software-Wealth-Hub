@@ -38,7 +38,7 @@ export async function GET(request: Request) {
           console.error(error)
           return NextResponse.json({ error: error.message }, { status: 500 })
       }
-    if (!posiciones || posiciones.length === 0) return []
+    if (!posiciones || posiciones.length === 0) return NextResponse.json([], { status: 200 })
 
     const posicionesMap = new Map<number, {
       cantidad: number
@@ -60,6 +60,7 @@ export async function GET(request: Request) {
       })
     }
     console.log('posiciones mapeadas')
+
     const codigos = [...posicionesMap.keys()]
 
     // 2️⃣ Históricos desde fecha
@@ -74,8 +75,7 @@ export async function GET(request: Request) {
       .gte('fecha', fechaInicio)
       .order('fecha', { ascending: true })
 
-    //console.log(historicos)
-    if (!historicos || historicos.length === 0) return []
+    if (!historicos || historicos.length === 0) return NextResponse.json([], { status: 200 })
 
     // 3️⃣ Agrupar históricos por fecha
     const histPorFecha = new Map<string, typeof historicos>()
@@ -156,7 +156,7 @@ export async function GET(request: Request) {
 
     }
 
-    //console.log('Informacion historica obtenida:')
+    console.log('Informacion historica obtenida:')
     //console.log(resultado)
     return NextResponse.json(resultado, { status: 200 })
 }
