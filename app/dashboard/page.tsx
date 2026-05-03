@@ -62,7 +62,7 @@ export default function Dashboard() {
         const activosAgrupados = activosData.reduce((acc: any[], curr) => {
           // 1. Buscamos el precio actual en el catálogo para este activo
           const infoCatalogo = catalogoData.find((c: any) => c.codigo === curr.activocodigo);
-          const precioMercado = infoCatalogo?.precio_actual || curr.precio_compra || 0;
+          const precioMercado = curr.precio_actual || curr.precio_compra || 0;
 
           const existente = acc.find(item => item.activocodigo === curr.activocodigo);
 

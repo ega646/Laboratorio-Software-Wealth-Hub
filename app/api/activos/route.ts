@@ -68,6 +68,7 @@ export async function GET() {
         p.perfiles?.divisas?.codigo,
         new Date(),
       )
+   console.log('De '+precioBase+p.activos?.divisas?.codigo+' a '+precio+p.perfiles?.divisas?.codigo)
 
       const precioCompraConvertido = await convertirDivisa(
         p.precio_compra,
@@ -75,6 +76,7 @@ export async function GET() {
         p.perfiles?.divisas?.codigo,
         new Date(),
       )
+
 
       const valorTotal = p.cantidad * precio
       const simbolo = p.perfiles?.divisas?.simbolo_divisa
@@ -86,6 +88,7 @@ export async function GET() {
 
       return {
         ...p,
+        precio_compra: precioCompraConvertido,
         simbolo_divisa: simbolo,
         precio_actual: precio,
         valor_total: Math.round(valorTotal * 100) / 100,
