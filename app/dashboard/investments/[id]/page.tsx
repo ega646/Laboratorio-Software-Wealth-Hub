@@ -23,6 +23,7 @@ import type { ActivoPoseidoConPrecio, Activo, TipoActivo } from "@/lib/types";
 type ActivoDetalle = ActivoPoseidoConPrecio & {
   activos: Activo & { tiposactivos?: TipoActivo }
   historico: { valor: number; fecha: string }[]
+  compras: { id: number; cantidad: number; precio_compra: number; fechainicio: string }[]
 }
 
 export default function DetallesInversion() {
@@ -43,11 +44,38 @@ export default function DetallesInversion() {
       .catch(() => setLoading(false));
   }, [id]);
 
-  async function handleEliminar() {
+  async function handleEliminar(transactionId?: number) {
     setEliminando(true);
     try {
-      const resp = await fetch(`/api/activos/${id}`, { method: 'DELETE' });
-      if (resp.ok) router.push('/dashboard');
+      // Forzamos que si no hay ID, la URL sea limpia para borrar todo el grupo
+      const url = transactionId
+        ? `/api/activos/${id}?transactionId=${transactionId}`
+        : `/api/activos/${id}`;
+
+      const resp = await fetch(url, {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' }
+      });
+
+      if (resp.ok) {
+        // Caso A: Borramos todo el activo o era la última compra que quedaba
+        if (!transactionId || (activo?.compras && activo.compras.length <= 1)) {
+          router.push('/dashboard?refresh=true');
+          router.refresh(); // Asegura que Next.js limpie la caché
+        } else {
+          // Caso B: Borramos solo una compra, recargamos los datos del activo
+          const updatedResp = await fetch(`/api/activos/${id}`);
+          if (updatedResp.ok) {
+            const data = await updatedResp.json();
+            setActivo(data);
+          }
+        }
+      } else {
+        const errorData = await resp.json();
+        console.error("Error al eliminar:", errorData.error);
+      }
+    } catch (error) {
+      console.error("Error en la petición DELETE:", error);
     } finally {
       setEliminando(false);
     }
@@ -77,7 +105,6 @@ export default function DetallesInversion() {
   const simbolo = info?.simbolo ?? nombre.substring(0, 4).toUpperCase()
   const color = info?.color ?? '#6366f1'
   const tipoLabel = info?.tiposactivos?.descripcion ?? info?.tipocodigo ?? '—'
-  const divisaSimbolo = info?.divisacodigo === 'EUR' ? '€' : info?.divisacodigo === 'GBP' ? '£' : '$'
 
   const valorTotal = activo.cantidad * activo.precio_actual
   const ganancia = valorTotal - activo.cantidad * activo.precio_compra
@@ -127,7 +154,7 @@ export default function DetallesInversion() {
                 <div className="text-right">
                   <p className="text-zinc-500 text-xl">Precio Actual</p>
                   <p className="text-6xl font-bold mt-3 tracking-tighter text-white">
-                    {divisaSimbolo}{activo.precio_actual.toLocaleString('es-ES')}
+                    {activo.simbolo_divisa}{activo.precio_actual.toLocaleString('es-ES')}
                   </p>
                   <div className={`flex items-center justify-end gap-3 mt-6 text-2xl ${gananciaPercent >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
                     {gananciaPercent >= 0 ? <TrendingUp className="w-7 h-7" /> : <TrendingDown className="w-7 h-7" />}
@@ -151,7 +178,8 @@ export default function DetallesInversion() {
                     <AlertDialogHeader>
                       <AlertDialogTitle>¿Eliminar {nombre}?</AlertDialogTitle>
                       <AlertDialogDescription className="text-zinc-400">
-                        Se borrará esta posición de tu cartera. El activo seguirá disponible en el catálogo.
+                        Se borrarán todas las compras asociadas a este activo de tu cartera.
+                        Esta acción no se puede deshacer.
                       </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>
@@ -159,7 +187,8 @@ export default function DetallesInversion() {
                         Cancelar
                       </AlertDialogCancel>
                       <AlertDialogAction
-                        onClick={handleEliminar}
+                        // Usamos una función flecha vacía para que transactionId sea undefined
+                        onClick={() => handleEliminar()}
                         disabled={eliminando}
                         className="bg-red-600 hover:bg-red-700 text-white"
                       >
@@ -198,7 +227,7 @@ export default function DetallesInversion() {
                   <span className="text-sm font-medium">Valor Total Actual</span>
                 </div>
                 <p className="text-4xl font-semibold text-white">
-                  {divisaSimbolo}{valorTotal.toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  {activo.simbolo_divisa}{valorTotal.toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                 </p>
               </div>
 
@@ -208,7 +237,7 @@ export default function DetallesInversion() {
                   <span className="text-sm font-medium">Precio Promedio de Compra</span>
                 </div>
                 <p className="text-4xl font-semibold text-white">
-                  {divisaSimbolo}{activo.precio_compra.toLocaleString('es-ES')}
+                  {activo.simbolo_divisa}{activo.precio_compra.toLocaleString('es-ES')}
                 </p>
               </div>
 
@@ -218,7 +247,7 @@ export default function DetallesInversion() {
                   <span className="text-sm font-medium">Ganancia / Pérdida</span>
                 </div>
                 <p className={`text-4xl font-semibold ${ganancia >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
-                  {ganancia >= 0 ? '+' : ''}{divisaSimbolo}{Math.abs(ganancia).toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  {ganancia >= 0 ? '+' : ''}{activo.simbolo_divisa}{Math.abs(ganancia).toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                 </p>
                 <p className={`text-xl ${ganancia >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
                   ({Math.round(gananciaPercent * 100) / 100}%)
@@ -244,13 +273,60 @@ export default function DetallesInversion() {
                 data={activo.historico}
                 color={color}
                 height={440}
-                currency={divisaSimbolo}
+                currency={activo.simbolo_divisa}
               />
             ) : (
               <div className="flex items-center justify-center h-48 text-zinc-500">
                 Sin datos históricos
               </div>
             )}
+          </CardContent>
+        </Card>
+
+        {/* Sección de Desglose de Compras Individuales */}
+        <Card className="bg-zinc-900/70 border border-white/5 mt-12 mb-12">
+          <CardHeader>
+            <CardTitle className="text-2xl">Historial de Adquisiciones</CardTitle>
+            <CardDescription>Gestiona cada compra individual de este activo</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="overflow-x-auto">
+              <table className="w-full text-left">
+                <thead>
+                  <tr className="text-zinc-500 border-b border-white/5">
+                    <th className="pb-4 font-medium">Fecha</th>
+                    <th className="pb-4 font-medium text-right">Cantidad</th>
+                    <th className="pb-4 font-medium text-right">Precio Compra</th>
+                    <th className="pb-4 font-medium text-right">Acciones</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-white/5">
+                  {activo.compras.map((compra) => (
+                    <tr key={compra.id} className="group">
+                      <td className="py-4 text-zinc-300">
+                        {new Date(compra.fechainicio).toLocaleDateString('es-ES')}
+                      </td>
+                      <td className="py-4 text-right font-medium">
+                        {compra.cantidad.toLocaleString('es-ES')} {simbolo}
+                      </td>
+                      <td className="py-4 text-right text-zinc-300">
+                        {compra.simbolo_divisa}{compra.precio_compra.toLocaleString('es-ES')}
+                      </td>
+                      <td className="py-4 text-right">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleEliminar(compra.id)}
+                          className="text-zinc-500 hover:text-red-400 hover:bg-red-400/10 opacity-0 group-hover:opacity-100 transition-opacity"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </CardContent>
         </Card>
       </div>

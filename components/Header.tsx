@@ -31,6 +31,9 @@ export function Header() {
           <div className="flex items-center gap-8">
             {user ? (
               <>
+                <Link href="/dashboard/catalogo" className="hidden md:block">
+                  <Button variant="ghost" className="text-zinc-300 hover:text-white text-lg font-medium">Catalogo</Button>
+                </Link>
                 <Link href="/dashboard" className="hidden md:block">
                   <Button variant="ghost" className="text-zinc-300 hover:text-white text-lg font-medium">Dashboard</Button>
                 </Link>
