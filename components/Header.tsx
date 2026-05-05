@@ -32,20 +32,20 @@ export function Header() {
             {user ? (
               <>
                 <Link href="/dashboard/catalogo" className="hidden md:block">
-                  <Button variant="ghost" className="text-zinc-300 hover:text-white text-lg font-medium">Catalogo</Button>
+                  <Button variant="ghost" className="text-lg font-medium">Catalogo</Button>
                 </Link>
                 <Link href="/dashboard" className="hidden md:block">
-                  <Button variant="ghost" className="text-zinc-300 hover:text-white text-lg font-medium">Dashboard</Button>
+                  <Button variant="ghost" className="text-lg font-medium">Dashboard</Button>
                 </Link>
                 <Link href="/profile" className="hidden md:block">
-                  <Button variant="ghost" className="text-zinc-300 hover:text-white flex items-center gap-2 text-lg font-medium">
+                  <Button variant="ghost" className="flex items-center gap-2 text-lg font-medium">
                     <User className="w-5 h-5" />
                     Perfil
                   </Button>
                 </Link>
                 <Button
                   variant="outline"
-                  className="border-white/30 hover:bg-white/10 text-white text-lg font-medium px-8 py-6"
+                  className="text-lg font-medium px-8 py-6"
                   onClick={handleLogout}
                 >
                   <LogOut className="w-5 h-5 mr-2" />
@@ -55,7 +55,7 @@ export function Header() {
             ) : (
               <>
                 <Link href="/login" className="hidden md:block">
-                  <Button variant="ghost" className="text-zinc-300 hover:text-white text-base font-medium px-5">
+                  <Button variant="ghost" className="text-zinc-300 hover:text-white hover:bg-zinc-800 cursor-pointer text-base font-medium px-5">
                     Iniciar Sesión
                   </Button>
                 </Link>

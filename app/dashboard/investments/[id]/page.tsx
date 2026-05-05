@@ -120,7 +120,7 @@ export default function DetallesInversion() {
         <Button
           variant="ghost"
           asChild
-          className="mb-12 text-zinc-400 hover:text-white hover:bg-white/5 h-14 px-8 text-lg font-medium"
+          className="mb-12 text-zinc-400 hover:text-white h-14 px-8 text-lg font-medium"
         >
           <Link href="/dashboard" className="flex items-center gap-3">
             <ArrowLeft className="w-6 h-6" />

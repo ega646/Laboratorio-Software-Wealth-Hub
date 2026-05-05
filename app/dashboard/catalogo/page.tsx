@@ -64,7 +64,7 @@ export default function CatalogoPage() {
         <Button
           variant="ghost"
           asChild
-          className="mb-10 text-zinc-400 hover:text-white hover:bg-white/5 h-12 px-6 text-base font-medium"
+          className="mb-10 text-zinc-400 hover:text-white h-12 px-6 text-base font-medium"
         >
           <Link href="/dashboard" className="flex items-center gap-2">
             <ArrowLeft className="w-5 h-5" />

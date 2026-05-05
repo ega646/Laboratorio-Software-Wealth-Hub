@@ -250,23 +250,22 @@ export default function Dashboard() {
         </Card>
 
         <div className="flex gap-4 mb-4">
-          {/* Selector de divisa */}
-          <select
-            value={divisa}
-            onChange={(e) => setDivisa(e.target.value)}
-            className="bg-zinc-800 border border-zinc-700 rounded px-3 py-2"
-          >
-            <option value="EUR">EUR €</option>
-            <option value="USD">USD $</option>
-            <option value="GBP">GBP ₤</option>
-          </select>
+          <Select value={divisa} onValueChange={setDivisa}>
+            <SelectTrigger className="w-36 bg-zinc-800 border-zinc-700 text-white">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent className="bg-zinc-900 border-white/10">
+              <SelectItem value="EUR" className="text-white focus:bg-zinc-800 focus:text-white">EUR €</SelectItem>
+              <SelectItem value="USD" className="text-white focus:bg-zinc-800 focus:text-white">USD $</SelectItem>
+              <SelectItem value="GBP" className="text-white focus:bg-zinc-800 focus:text-white">GBP ₤</SelectItem>
+            </SelectContent>
+          </Select>
 
-          {/* Selector de fecha */}
-          <input
+          <Input
             type="date"
             value={fechaInicio}
             onChange={(e) => setFechaInicio(e.target.value)}
-            className="bg-zinc-800 border border-zinc-700 rounded px-3 py-2"
+            className="w-44 bg-zinc-800 border-zinc-700 text-white"
           />
         </div>
 
@@ -420,7 +419,7 @@ export default function Dashboard() {
             {/* Botón Añadir Inversión - Movido aquí y más grande */}
             <Dialog open={isAddModalOpen} onOpenChange={setIsAddModalOpen}>
               <DialogTrigger asChild>
-                <Button className="gap-2 bg-white text-black hover:bg-zinc-200 h-11 px-6 text-base font-medium">
+                <Button variant="cta" className="gap-2 h-11 px-6 text-base">
                   <Plus className="w-5 h-5" />
                   Añadir Inversión
                 </Button>
@@ -575,7 +574,7 @@ export default function Dashboard() {
 
                   {/* Botones de acción */}
                   <div className="flex gap-3 pt-4">
-                    <Button onClick={handleAddInversion} disabled={adding} className="flex-1 bg-white text-black hover:bg-zinc-200">
+                    <Button onClick={handleAddInversion} disabled={adding} variant="cta" className="flex-1">
                       {adding ? "Añadiendo..." : "Confirmar Inversión"}
                     </Button>
                     <Button variant="outline" onClick={() => setIsAddModalOpen(false)} className="flex-1 border-white/10 hover:bg-zinc-800">

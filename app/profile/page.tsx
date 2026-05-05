@@ -61,7 +61,7 @@ export default function PerfilPage() {
         <Button
           variant="ghost"
           asChild
-          className="mb-10 text-zinc-400 hover:text-white hover:bg-white/5 h-12 text-lg px-6"
+          className="mb-10 text-zinc-400 hover:text-white h-12 text-lg px-6"
         >
           <Link href="/dashboard" className="flex items-center gap-3">
             <ArrowLeft className="w-6 h-6" />
@@ -96,14 +96,14 @@ export default function PerfilPage() {
                 <Button
                   asChild
                   variant="outline"
-                  className="border-white/10 hover:bg-white/5 text-white h-12 px-8 text-lg"
+                  className="h-12 px-8 text-lg"
                 >
                   <Link href="/profile/edit">Editar Perfil</Link>
                 </Button>
                 <Button
                   variant="outline"
                   onClick={handleLogout}
-                  className="border-white/10 hover:bg-white/5 text-white h-12 px-8 text-lg"
+                  className="h-12 px-8 text-lg"
                 >
                   <LogOut className="w-5 h-5 mr-2" />
                   Cerrar Sesión

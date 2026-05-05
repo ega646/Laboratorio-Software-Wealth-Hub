@@ -94,7 +94,7 @@ export default function PerfilEdit() {
         <Button
           variant="ghost"
           asChild
-          className="mb-10 text-zinc-500 hover:text-zinc-300 hover:bg-white/5 h-12 text-lg px-6"
+          className="mb-10 text-zinc-400 hover:text-white h-12 text-lg px-6"
         >
           <Link href="/profile" className="flex items-center gap-3">
             <ArrowLeft className="w-6 h-6" />
@@ -207,7 +207,8 @@ function GeneralInfo({ nombre, saving, onSave, onCancel }: {
           <Button
             onClick={() => onSave(value)}
             disabled={saving}
-            className="bg-white text-black hover:bg-zinc-200 h-12 text-base px-8 disabled:opacity-50"
+            variant="cta"
+            className="h-12 text-base px-8"
           >
             {saving ? 'Guardando...' : 'Guardar Cambios'}
           </Button>
@@ -405,7 +406,8 @@ function SecuritySettings() {
             <Button
               onClick={handlePasswordChange}
               disabled={saving}
-              className="mt-4 h-12 px-8 text-lg bg-white text-black hover:bg-zinc-200 font-semibold disabled:opacity-50"
+              variant="cta"
+              className="mt-4 h-12 px-8 text-lg"
             >
               {saving ? 'Actualizando...' : 'Actualizar Contraseña'}
             </Button>
@@ -418,7 +420,7 @@ function SecuritySettings() {
               <h3 className="text-xl font-semibold">Autenticación de Dos Factores (2FA)</h3>
               <p className="text-zinc-400 mt-2">Añade una capa extra de seguridad</p>
             </div>
-            <Button className="h-12 px-10 text-lg bg-white text-black hover:bg-zinc-200 font-semibold">
+            <Button variant="cta" className="h-12 px-10 text-lg">
               Activar 2FA
             </Button>
           </div>
@@ -449,9 +451,9 @@ function Preferences({ divisaBase, saving, onSave }: {
             <SelectTrigger className="bg-zinc-950 border-white/10 h-14 text-xl">
               <SelectValue />
             </SelectTrigger>
-            <SelectContent className="bg-white text-black border border-zinc-200 shadow-xl">
-              <SelectItem value="EUR" className="text-black hover:bg-zinc-100">EUR - Euro</SelectItem>
-              <SelectItem value="USD" className="text-black hover:bg-zinc-100">USD - Dólar Estadounidense</SelectItem>
+            <SelectContent className="bg-zinc-900 text-white border border-white/10">
+              <SelectItem value="EUR" className="text-white focus:bg-zinc-800 focus:text-white">EUR - Euro</SelectItem>
+              <SelectItem value="USD" className="text-white focus:bg-zinc-800 focus:text-white">USD - Dólar Estadounidense</SelectItem>
             </SelectContent>
           </Select>
         </div>

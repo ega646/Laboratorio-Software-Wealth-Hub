@@ -35,9 +35,10 @@ export default function Inicio() {
               </p>
 
               <div className="flex flex-wrap gap-5">
-                <Button 
-                  size="lg" 
-                  className="bg-white text-black hover:bg-zinc-100 font-semibold text-xl px-12 py-8 rounded-3xl shadow-2xl shadow-white/10"
+                <Button
+                  variant="cta"
+                  size="lg"
+                  className="text-xl px-12 py-8 rounded-3xl shadow-2xl shadow-white/10"
                   asChild
                 >
                   <Link href={ctaHref}>
@@ -139,9 +140,10 @@ export default function Inicio() {
             Únete a miles de inversores que ya gestionan su dinero de forma más inteligente.
           </p>
           
-          <Button 
-            size="lg" 
-            className="bg-white text-black hover:bg-zinc-100 font-semibold text-2xl px-16 py-9 rounded-3xl shadow-2xl"
+          <Button
+            variant="cta"
+            size="lg"
+            className="text-2xl px-16 py-9 rounded-3xl shadow-2xl"
             asChild
           >
             <Link href={ctaHref}>

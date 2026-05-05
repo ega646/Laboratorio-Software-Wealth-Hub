@@ -134,7 +134,8 @@ export default function LoginPage() {
                   <Button
                     type="submit"
                     disabled={loading}
-                    className="w-full h-14 text-lg font-semibold bg-white text-black hover:bg-zinc-200 mt-4 disabled:opacity-50"
+                    variant="cta"
+                    className="w-full h-14 text-lg mt-4"
                   >
                     {loading ? "Entrando..." : "Iniciar Sesión"}
                   </Button>

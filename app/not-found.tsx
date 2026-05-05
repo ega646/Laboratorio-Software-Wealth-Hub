@@ -2,51 +2,44 @@
 import Link from "next/link";
 import { Header } from "@/components/Header";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
 import { Home, ArrowLeft, Search } from "lucide-react";
 
 export default function NotFound() {
   return (
-    <div className="min-h-screen bg-gray-50">
-      <Header isLoggedIn={false} />
+    <div className="min-h-screen bg-gradient-to-br from-zinc-950 via-zinc-900 to-black text-white">
+      <Header />
 
-      <div className="max-w-2xl mx-auto px-4 py-20 flex flex-col items-center justify-center min-h-[calc(100vh-64px)] text-center">
-        <Card className="w-full max-w-md">
-          <CardContent className="p-12">
-            {/* Icono grande */}
-            <div className="mx-auto w-24 h-24 bg-blue-100 rounded-2xl flex items-center justify-center mb-8">
-              <Search className="w-12 h-12 text-blue-600" />
-            </div>
+      <div className="max-w-2xl mx-auto px-4 py-20 flex flex-col items-center justify-center min-h-[calc(100vh-80px)] text-center">
+        <div className="w-24 h-24 bg-zinc-800 rounded-3xl flex items-center justify-center mb-8">
+          <Search className="w-12 h-12 text-zinc-400" />
+        </div>
 
-            <h1 className="text-7xl font-bold text-gray-900 mb-2">404</h1>
-            <h2 className="text-2xl font-semibold text-gray-800 mb-4">
-              Página no encontrada
-            </h2>
-            
-            <p className="text-gray-600 mb-10">
-              Lo sentimos, la página que estás buscando no existe o ha sido movida.
-            </p>
+        <h1 className="text-8xl font-bold tracking-tighter mb-2">404</h1>
+        <h2 className="text-2xl font-semibold text-zinc-300 mb-4">
+          Página no encontrada
+        </h2>
 
-            <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Button asChild size="lg">
-                <Link href="/">
-                  <Home className="w-5 h-5 mr-2" />
-                  Volver al Inicio
-                </Link>
-              </Button>
+        <p className="text-zinc-500 mb-12 text-lg">
+          Lo sentimos, la página que estás buscando no existe o ha sido movida.
+        </p>
 
-              <Button asChild variant="outline" size="lg">
-                <Link href="/dashboard">
-                  <ArrowLeft className="w-5 h-5 mr-2" />
-                  Ir al Dashboard
-                </Link>
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
+        <div className="flex flex-col sm:flex-row gap-4 justify-center">
+          <Button asChild size="lg" className="h-12 px-8 text-base">
+            <Link href="/">
+              <Home className="w-5 h-5 mr-2" />
+              Volver al Inicio
+            </Link>
+          </Button>
 
-        {/* Mensaje adicional */}
-        <p className="text-sm text-gray-500 mt-10">
+          <Button asChild variant="outline" size="lg" className="h-12 px-8 text-base">
+            <Link href="/dashboard">
+              <ArrowLeft className="w-5 h-5 mr-2" />
+              Ir al Dashboard
+            </Link>
+          </Button>
+        </div>
+
+        <p className="text-sm text-zinc-600 mt-12">
           Si crees que esto es un error, por favor contacta con soporte.
         </p>
       </div>
