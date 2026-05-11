@@ -17,7 +17,7 @@ export default function GlobalError({
   }, [error]);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-zinc-950 via-zinc-900 to-black text-white flex items-center justify-center p-4">
+    <div className="min-h-screen text-white flex items-center justify-center p-4">
       <div className="max-w-md w-full text-center">
         <div className="mx-auto w-16 h-16 bg-red-900/30 border border-red-800/40 rounded-2xl flex items-center justify-center mb-6">
           <AlertTriangle className="w-8 h-8 text-red-400" />

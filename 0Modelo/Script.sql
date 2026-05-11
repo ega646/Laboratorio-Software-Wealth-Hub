@@ -114,7 +114,7 @@ CREATE OR REPLACE FUNCTION "public"."get_historico_activo"("p_activocodigo" inte
     LANGUAGE "sql" STABLE
     AS $$
   select
-    convertir_divisa(valor, p_origen, p_destino, p_fecha) valor,
+    convertir_divisa(valor, p_origen, p_destino, fecha) valor,
     fecha
   from valorhistoricoactivo
   where activocodigo = p_activocodigo
@@ -143,13 +143,13 @@ $$;
 ALTER FUNCTION "public"."handle_new_user"() OWNER TO "postgres";
 
 
-CREATE OR REPLACE FUNCTION "public"."resumen_portfolio"("user_id" "uuid") RETURNS TABLE("activocodigo" integer, "descripcion" "text", "tipodescripcion" "text", "color" "text", "cantidad" numeric, "precio_compra" numeric, "precio_actual" numeric, "valor_actual" numeric)
+CREATE OR REPLACE FUNCTION "public"."resumen_portfolio"("p_user_id" "uuid") RETURNS TABLE("activocodigo" integer, "descripcion" "text", "tipodescripcion" "text", "color" "text", "cantidad" numeric, "precio_compra" numeric, "precio_actual" numeric, "valor_actual" numeric)
     LANGUAGE "sql"
     AS $$
 WITH perfil AS (
   SELECT divisabasecodigo
   FROM perfiles
-  WHERE user_id = user_id
+  WHERE id = p_user_id
 ),
 ultimos_precios AS (
   SELECT DISTINCT ON (v.activocodigo)
@@ -203,7 +203,7 @@ LEFT JOIN cambios c ON
   c.fecini <= up.fecha AND
   (c.fecfin IS NULL OR c.fecfin >= up.fecha)
 
-WHERE ap.usuario_id = user_id;
+WHERE ap.usuario_id = p_user_id;
 $$;
 
 
@@ -225,7 +225,7 @@ BEGIN
         daterange(NEW.fecini, COALESCE(NEW.fecfin, 'infinity'::date), '[]')
       );
 
-    IF v_count > 1 THEN
+    IF v_count > 0 THEN
         RAISE EXCEPTION 'Solapamiento de rangos en Cambios';
     END IF;
 

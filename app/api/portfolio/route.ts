@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
-import { convertirDivisa } from '@/app/api/cambios/route'
 import type { ResumenPortfolio } from '@/lib/types'
 
 // GET /api/portfolio
@@ -20,6 +19,7 @@ export async function GET() {
       activocodigo,
       cantidad,
       precio_compra,
+      fechainicio,
       activos (
         descripcion,
         tipocodigo,
@@ -27,71 +27,99 @@ export async function GET() {
         color,
         tiposactivos ( descripcion )
       ),
-      perfiles ( divisabasecodigo (codigo, simbolo_divisa)) )
+      perfiles ( divisabasecodigo (codigo, simbolo_divisa) )
     `)
     .eq('usuario_id', user.id)
-  console.log('Usuario recibido')
+
   if (error) {
-      console.error(error)
-      return NextResponse.json({ error: error.message }, { status: 500 })
+    console.error('portfolio GET:', error)
+    return NextResponse.json({ error: error.message }, { status: 500 })
   }
-  console.log('Usuario recibido con exito')
+
   if (!posiciones || posiciones.length === 0) {
     return NextResponse.json({
+      simboloDivisa: '€',
       patrimonio_total: 0,
       distribucion: [],
       mejor_activo: null,
     } satisfies ResumenPortfolio)
   }
 
-  // 1.5 separamos la divisa que desea el cliente
   const perfil = posiciones[0].perfiles as any
-  const divisaFinal = perfil?.divisabasecodigo?.codigo
-  const simboloDivisa = perfil?.divisabasecodigo?.simbolo_divisa
+  const divisaFinal = perfil?.divisabasecodigo?.codigo as string | undefined
+  const simboloDivisa = perfil?.divisabasecodigo?.simbolo_divisa as string | undefined
 
-  // 2. Precio actual de cada activo (último valor histórico)
   const codigos = posiciones.map(p => p.activocodigo)
 
+  // 2. Precio más reciente de cada activo — BUG FIX: limit a N+10 filas (ordenado DESC)
+  //    En lugar de traer 5 años de histórico, solo necesitamos el último precio por activo.
+  //    Con ORDER BY fecha DESC y la guarda `if (!(h.activocodigo in precioActual))`,
+  //    añadir un límite razonable evita traer miles de filas innecesarias.
   const { data: historicos } = await supabase
     .from('valorhistoricoactivo')
-    .select(`activocodigo, valor, fecha,
-            activos (divisacodigo
-                  )`)
+    .select('activocodigo, valor, fecha')
     .in('activocodigo', codigos)
     .order('fecha', { ascending: false })
+    .limit(codigos.length * 10)
 
-const precioActual: Record<number, number> = {}
+  // 3. Tipos de cambio en UNA query (BUG FIX: antes había N awaits secuenciales)
+  const divisasActivos = [...new Set(
+    posiciones
+      .map(p => (p.activos as any)?.divisacodigo?.codigo as string)
+      .filter(Boolean)
+  )]
 
-for (const h of historicos ?? []) {
-  if (!(h.activocodigo in precioActual)) {
-    const activo = h.activos as any
-    const divisaActivo = activo?.divisacodigo
+  const rateCache: Record<string, number> = {}
 
-   try {
-     if (divisaActivo === divisaFinal) {
-       precioActual[h.activocodigo] = Number(h.valor)
-     } else {
-       precioActual[h.activocodigo] = await convertirDivisa(
-         Number(h.valor),
-         divisaActivo,
-         divisaFinal,
-         h.fecha
-       )
-     }
-   } catch (e) {
-     console.error('Error convirtiendo:', h, e)
-     precioActual[h.activocodigo] = 0 // 🔥 evita romper todo
-   }
+  if (divisaFinal) {
+    const divisasAConvertir = divisasActivos.filter(d => d !== divisaFinal)
+    if (divisasAConvertir.length > 0) {
+      const hoy = new Date().toISOString().split('T')[0]
+      const { data: cambios } = await supabase
+        .from('cambios')
+        .select('divisaorigen, cambio')
+        .in('divisaorigen', divisasAConvertir)
+        .eq('divisadestino', divisaFinal)
+        .lte('fecini', hoy)
+        .order('fecini', { ascending: false })
+
+      for (const c of cambios ?? []) {
+        if (!(c.divisaorigen in rateCache)) rateCache[c.divisaorigen] = Number(c.cambio)
+      }
+    }
   }
-}
 
-  // 3. Patrimonio total
+  // 4. Construir mapa precio actual (en divisa del usuario)
+  const precioActual: Record<number, number> = {}
+
+  for (const h of historicos ?? []) {
+    if (h.activocodigo in precioActual) continue
+    const activo = posiciones.find(p => p.activocodigo === h.activocodigo)?.activos as any
+    const divisaActivo = activo?.divisacodigo?.codigo as string | undefined
+    const tasa = divisaActivo && divisaFinal && divisaActivo !== divisaFinal
+      ? (rateCache[divisaActivo] ?? 1)
+      : 1
+    precioActual[h.activocodigo] = Number(h.valor) * tasa
+  }
+
+  // EFECTIVO: valor = 1 en su divisa nativa, convertido con rateCache
+  for (const p of posiciones) {
+    const activo = p.activos as any
+    if (activo?.tipocodigo !== 'EFECTIVO') continue
+    const divisaActivo = activo?.divisacodigo?.codigo as string | undefined
+    const tasa = divisaActivo && divisaFinal && divisaActivo !== divisaFinal
+      ? (rateCache[divisaActivo] ?? 1)
+      : 1
+    precioActual[p.activocodigo] = 1 * tasa
+  }
+
+  // 5. Patrimonio total
   const patrimonio_total = posiciones.reduce((sum, p) => {
     const precio = precioActual[p.activocodigo] ?? 0
     return sum + p.cantidad * precio
   }, 0)
 
-  // 4. Distribución por tipo de activo (usando descripcion de tiposactivos)
+  // 6. Distribución por tipo de activo
   const porTipo: Record<string, { valor: number; color: string }> = {}
 
   for (const p of posiciones) {
@@ -114,18 +142,56 @@ for (const h of historicos ?? []) {
     color,
   }))
 
-  // 5. Mejor activo por rentabilidad
+  // 7. Precio de compra efectivo (histórico en fechainicio si precio_compra = 0)
+  const precioCompraEfectivo: Record<number, number> = {}
+  for (const p of posiciones) precioCompraEfectivo[p.activocodigo] = p.precio_compra
+
+  const sinPrecio = posiciones.filter(p => !p.precio_compra && (p as any).fechainicio)
+  if (sinPrecio.length > 0) {
+    const codigosSin = [...new Set(sinPrecio.map(p => p.activocodigo))]
+    const fechaMin = sinPrecio.map(p => (p as any).fechainicio as string).sort()[0]
+
+    const { data: historicoCompra } = await supabase
+      .from('valorhistoricoactivo')
+      .select('activocodigo, fecha, valor')
+      .in('activocodigo', codigosSin)
+      .gte('fecha', fechaMin)
+      .order('fecha', { ascending: true })
+
+    for (const p of sinPrecio) {
+      const fechaInicio = (p as any).fechainicio as string
+      const rows = (historicoCompra ?? []).filter(
+        (h: { activocodigo: number; fecha: string; valor: unknown }) =>
+          h.activocodigo === p.activocodigo && h.fecha <= fechaInicio
+      )
+      const precio = rows.length > 0
+        ? Number(rows[rows.length - 1].valor)
+        : Number((historicoCompra ?? []).find(
+            (h: { activocodigo: number }) => h.activocodigo === p.activocodigo
+          )?.valor ?? 0)
+      if (precio > 0) precioCompraEfectivo[p.activocodigo] = precio
+    }
+  }
+
+  // 8. Mejor activo por rentabilidad (usa precio histórico cuando precio_compra = 0)
   const conRentabilidad = posiciones
-    .filter(p => p.precio_compra > 0)
+    .filter(p => (precioActual[p.activocodigo] ?? 0) > 0)
     .map(p => {
-      const precio = precioActual[p.activocodigo] ?? 0
+      const precioActualPos = precioActual[p.activocodigo] ?? 0
       const activo = p.activos as any
+      const divisaActivo = activo?.divisacodigo?.codigo as string | undefined
+      const tasa = divisaActivo && divisaFinal && divisaActivo !== divisaFinal
+        ? (rateCache[divisaActivo] ?? 1) : 1
+      const precioCompraConvertido = precioCompraEfectivo[p.activocodigo] * tasa
       return {
         descripcion: activo?.descripcion ?? String(p.activocodigo),
         codigo: p.activocodigo,
-        rentabilidad_pct: Math.round(((precio - p.precio_compra) / p.precio_compra) * 10000) / 100,
+        rentabilidad_pct: precioCompraConvertido > 0
+          ? Math.round(((precioActualPos - precioCompraConvertido) / precioCompraConvertido) * 10000) / 100
+          : 0,
       }
     })
+    .filter(p => p.rentabilidad_pct !== 0)
 
   const mejor_activo = conRentabilidad.length > 0
     ? conRentabilidad.reduce((best, a) => a.rentabilidad_pct > best.rentabilidad_pct ? a : best)
@@ -133,10 +199,9 @@ for (const h of historicos ?? []) {
 
   return NextResponse.json({
     divisaFinal,
-    simboloDivisa,
+    simboloDivisa: simboloDivisa ?? '€',
     patrimonio_total: Math.round(patrimonio_total * 100) / 100,
     distribucion,
     mejor_activo,
   } satisfies ResumenPortfolio)
-
 }

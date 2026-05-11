@@ -102,6 +102,7 @@ export interface ActivoPoseidoConPrecio extends ActivoPoseido {
   simbolo_divisa: string
   valor_total: number
   rentabilidad_pct: number
+  precio_promedio_compra?: number
 }
 
 // Para insertar/actualizar una posición
@@ -114,6 +115,7 @@ export type NuevaPosition = {
 
 // Resumen del portfolio calculado por GET /api/portfolio
 export interface ResumenPortfolio {
+  divisaFinal?: string
   simboloDivisa: string
   patrimonio_total: number,
   distribucion: {
@@ -131,6 +133,43 @@ export interface ResumenPortfolio {
 
 // Resumen de la informacion calculada por GET /api/historicalData
 export interface HistoricalDataGlobal {
-    day:   date
+    day:   Date
     value: number
+}
+
+// ── UC14: Recomendaciones de cartera ────────────────────────
+
+export type SeveridadRecomendacion = 'info' | 'warn' | 'critical'
+export type EstadoRecomendacion = 'activa' | 'ignorada' | 'recordar'
+export type TipoRecomendacion = 'desbalance_cartera'
+
+export interface Recomendacion {
+  id: number
+  usuario_id: string
+  tipo: TipoRecomendacion
+  severidad: SeveridadRecomendacion
+  titulo: string
+  mensaje: string
+  datos_json: DatosDesbalance | Record<string, unknown>
+  estado: EstadoRecomendacion
+  fecha_creacion: string
+  fecha_recordatorio: string | null
+}
+
+// Estructura de datos_json cuando tipo = 'desbalance_cartera'
+export interface DatosDesbalance {
+  perfil: 'BAJO' | 'MEDIO' | 'ALTO'
+  distribucion_actual: {
+    tipo: string
+    porcentaje: number
+    valor: number
+  }[]
+  distribucion_target: Record<string, number>
+  desviaciones: {
+    tipo: string
+    pctActual: number
+    pctTarget: number
+    desviacionAbs: number
+    severidad: SeveridadRecomendacion
+  }[]
 }

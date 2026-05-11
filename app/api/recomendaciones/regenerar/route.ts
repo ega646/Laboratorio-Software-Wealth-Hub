@@ -1,15 +1,16 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
-import { actualizarPrecios } from '@/lib/server/actualizarPrecios'
+import { regenerarRecomendacionesUsuario } from '@/lib/server/regenerarRecomendaciones'
 
-// POST /api/precios
-// Actualiza precios de todos los activos vía Yahoo Finance (una sola llamada batch).
-// Llamado manualmente desde el botón del dashboard.
+// POST /api/recomendaciones/regenerar
+// Recalcula las recomendaciones del usuario actual (típicamente
+// invocado tras cambios manuales en la cartera o desde un botón de UI).
 export async function POST() {
   const supabase = await createClient()
+
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
 
-  const resultado = await actualizarPrecios()
+  const resultado = await regenerarRecomendacionesUsuario(user.id)
   return NextResponse.json(resultado)
 }

@@ -16,7 +16,7 @@ export default function Inicio() {
   const ctaText = isLoggedIn ? "Ir al Dashboard" : "Comenzar Gratis";
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-zinc-950 via-zinc-900 to-black text-white overflow-hidden">
+    <div className="min-h-screen text-white overflow-hidden">
       <Header />
 
       {/* Hero Section */}

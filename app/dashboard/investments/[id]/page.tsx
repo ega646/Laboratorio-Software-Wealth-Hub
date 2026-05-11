@@ -1,11 +1,12 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { Header } from "@/components/Header";
 import { PriceChart } from "@/components/PriceChart";
+import { AnalisisTecnico, type IndicadoresResp } from "@/components/AnalisisTecnico";
 import {
   ArrowLeft, TrendingUp, TrendingDown, DollarSign,
   Activity, Calendar, Percent, Trash2,
@@ -20,10 +21,13 @@ import {
 } from "@/components/ui/alert-dialog";
 import type { ActivoPoseidoConPrecio, Activo, TipoActivo } from "@/lib/types";
 
+type SmaSerieItem = { fecha: string; sma50: number | null; sma200: number | null }
+
 type ActivoDetalle = ActivoPoseidoConPrecio & {
   activos: Activo & { tiposactivos?: TipoActivo }
   historico: { valor: number; fecha: string }[]
-  compras: { id: number; cantidad: number; precio_compra: number; fechainicio: string }[]
+  compras: { id: number; cantidad: number; precio_compra: number; fechainicio: string; simbolo_divisa?: string }[]
+  indicadores?: IndicadoresResp & { smaSeries: SmaSerieItem[] }
 }
 
 export default function DetallesInversion() {
@@ -33,6 +37,7 @@ export default function DetallesInversion() {
   const [activo, setActivo] = useState<ActivoDetalle | null>(null);
   const [loading, setLoading] = useState(true);
   const [eliminando, setEliminando] = useState(false);
+  const [rangoMeses, setRangoMeses] = useState<number | null>(12);
 
   useEffect(() => {
     fetch(`/api/activos/${id}`)
@@ -81,9 +86,19 @@ export default function DetallesInversion() {
     }
   }
 
+  // historico filtrado por rango — debe estar ANTES de cualquier early return
+  const historicoFiltrado = useMemo(() => {
+    if (!activo?.historico?.length) return []
+    if (!rangoMeses) return activo.historico
+    const corte = new Date()
+    corte.setMonth(corte.getMonth() - rangoMeses)
+    const corteStr = corte.toISOString().split('T')[0]
+    return activo.historico.filter(h => h.fecha >= corteStr)
+  }, [activo?.historico, rangoMeses])
+
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-zinc-950 via-zinc-900 to-black text-white flex items-center justify-center">
+      <div className="min-h-screen text-white flex items-center justify-center">
         <p className="text-zinc-400 text-xl">Cargando activo...</p>
       </div>
     );
@@ -91,7 +106,7 @@ export default function DetallesInversion() {
 
   if (!activo) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-zinc-950 via-zinc-900 to-black text-white flex flex-col items-center justify-center gap-6">
+      <div className="min-h-screen text-white flex flex-col items-center justify-center gap-6">
         <p className="text-zinc-400 text-xl">Activo no encontrado</p>
         <Button asChild variant="outline">
           <Link href="/dashboard">Volver al Dashboard</Link>
@@ -105,15 +120,14 @@ export default function DetallesInversion() {
   const simbolo = info?.simbolo ?? nombre.substring(0, 4).toUpperCase()
   const color = info?.color ?? '#6366f1'
   const tipoLabel = info?.tiposactivos?.descripcion ?? info?.tipocodigo ?? '—'
+  const chartColor = '#60a5fa'
 
   const valorTotal = activo.cantidad * activo.precio_actual
   const ganancia = valorTotal - activo.cantidad * activo.precio_compra
-  const gananciaPercent = activo.precio_compra > 0
-    ? ((activo.precio_actual - activo.precio_compra) / activo.precio_compra) * 100
-    : 0
+  const gananciaPercent = activo.rentabilidad_pct ?? 0
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-zinc-950 via-zinc-900 to-black text-white">
+    <div className="min-h-screen text-white">
       <Header />
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
@@ -257,25 +271,77 @@ export default function DetallesInversion() {
           </CardContent>
         </Card>
 
-        {/* Gráfico */}
-        <Card className="bg-zinc-900/70 border border-white/5">
-          <CardHeader className="pb-6">
-            <CardTitle className="text-3xl">Evolución del Precio</CardTitle>
-            <CardDescription>
-              {activo.historico.length > 0
-                ? `Últimos ${activo.historico.length} días — datos reales de mercado`
-                : 'Sin datos históricos disponibles. Actualiza los precios desde el dashboard.'}
-            </CardDescription>
+        {/* Gráfico de evolución (con overlays SMA si hay indicadores) */}
+        <Card className="bg-zinc-900/70 border border-white/5 mb-12">
+          <CardHeader className="pb-2">
+            <div className="flex items-center justify-between flex-wrap gap-4">
+              <div>
+                <CardTitle className="text-3xl">Evolución del Precio</CardTitle>
+                <CardDescription className="mt-1">
+                  {activo.historico.length > 0
+                    ? `${historicoFiltrado.length} día${historicoFiltrado.length === 1 ? '' : 's'} mostrados — datos reales de mercado`
+                    : 'Sin datos históricos disponibles. Actualiza los precios desde el dashboard.'}
+                </CardDescription>
+              </div>
+              {activo.historico.length > 0 && (
+                <div className="flex gap-1">
+                  {([
+                    { label: '1M', meses: 1 },
+                    { label: '3M', meses: 3 },
+                    { label: '6M', meses: 6 },
+                    { label: '1A', meses: 12 },
+                    { label: '5A', meses: null },
+                  ] as const).map(({ label, meses }) => (
+                    <button
+                      key={label}
+                      onClick={() => setRangoMeses(meses)}
+                      className={`px-3 py-1 rounded text-sm font-medium transition-colors ${
+                        rangoMeses === meses
+                          ? 'bg-violet-600 text-white'
+                          : 'text-zinc-400 hover:text-white hover:bg-zinc-800'
+                      }`}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
           </CardHeader>
           <CardContent className="pt-4 pb-8">
-            {activo.historico.length > 0 ? (
-              <PriceChart
-                data={activo.historico}
-                color={color}
-                height={440}
-                currency={activo.simbolo_divisa}
-              />
-            ) : (
+            {historicoFiltrado.length > 0 ? (() => {
+              const smaSeries = activo.indicadores?.smaSeries
+              if (smaSeries && smaSeries.length === activo.historico.length) {
+                // Con overlays SMA: filtrar smaSeries por las mismas fechas
+                const smaFiltradas = smaSeries.filter(s =>
+                  historicoFiltrado.some(h => h.fecha === s.fecha)
+                )
+                const dataAsc = smaFiltradas.map(s => {
+                  const punto = historicoFiltrado.find(h => h.fecha === s.fecha)
+                  return { fecha: s.fecha, valor: Number(punto?.valor ?? 0) }
+                })
+                return (
+                  <PriceChart
+                    data={dataAsc}
+                    color={chartColor}
+                    height={440}
+                    currency={activo.simbolo_divisa}
+                    overlays={[
+                      { label: 'SMA 50',  color: '#f59e0b', values: smaFiltradas.map(s => s.sma50) },
+                      { label: 'SMA 200', color: '#a855f7', values: smaFiltradas.map(s => s.sma200) },
+                    ]}
+                  />
+                )
+              }
+              return (
+                <PriceChart
+                  data={historicoFiltrado}
+                  color={chartColor}
+                  height={440}
+                  currency={activo.simbolo_divisa}
+                />
+              )
+            })() : (
               <div className="flex items-center justify-center h-48 text-zinc-500">
                 Sin datos históricos
               </div>
@@ -329,6 +395,14 @@ export default function DetallesInversion() {
             </div>
           </CardContent>
         </Card>
+
+        {/* UC16: Análisis técnico */}
+        {activo.indicadores && (
+          <AnalisisTecnico
+            indicadores={activo.indicadores}
+            divisaSimbolo={activo.simbolo_divisa ?? '$'}
+          />
+        )}
       </div>
     </div>
   );

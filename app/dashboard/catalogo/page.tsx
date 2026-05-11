@@ -50,14 +50,14 @@ export default function CatalogoPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-zinc-950 via-zinc-900 to-black text-white flex items-center justify-center">
+      <div className="min-h-screen text-white flex items-center justify-center">
         <p className="text-zinc-400 text-xl">Cargando catálogo...</p>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-zinc-950 via-zinc-900 to-black text-white pb-20">
+    <div className="min-h-screen text-white pb-20">
       <Header />
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">

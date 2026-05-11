@@ -1,10 +1,23 @@
 "use client";
 
-import { AreaChart, Area, ResponsiveContainer, XAxis, YAxis, Tooltip, CartesianGrid } from "recharts";
+import { ComposedChart, Line, ResponsiveContainer, XAxis, YAxis, Tooltip, CartesianGrid, Legend } from "recharts";
 
 export interface PriceChartPoint {
   fecha: string
   valor: number
+}
+
+export interface PriceChartOverlay {
+  /** Etiqueta para tooltip y leyenda (ej. "SMA 50") */
+  label: string
+  /** Color del trazo (ej. "#f59e0b") */
+  color: string
+  /**
+   * Serie de valores alineada por índice con `data` ya invertida (ASC).
+   * Si la longitud no coincide con `data`, se ignora.
+   * Los valores `null` se renderizan como huecos (no dibuja línea).
+   */
+  values: (number | null)[]
 }
 
 interface Props {
@@ -12,6 +25,15 @@ interface Props {
   color?: string
   height?: number
   currency?: string
+  /**
+   * UC16: overlays opcionales (medias móviles u otros indicadores) que se
+   * dibujan como líneas adicionales sobre el gráfico de precio.
+   *
+   * IMPORTANTE: cuando hay overlays se asume que `data` ya está en orden
+   * cronológico ASC (porque sus values vienen alineados por índice). El
+   * componente NO invierte `data` en este caso.
+   */
+  overlays?: PriceChartOverlay[]
 }
 
 function formatFecha(fecha: string): string {
@@ -19,37 +41,64 @@ function formatFecha(fecha: string): string {
   return d.toLocaleDateString('es-ES', { day: 'numeric', month: 'short' })
 }
 
-export function PriceChart({ data, color = '#60a5fa', height = 300, currency = '$' }: Props) {
-  // El historico de la API viene en orden descendente; el gráfico necesita ascendente
-  const chartData = [...data].reverse().map(p => ({
-    fecha: p.fecha,          // ← RAW
-    valor: p.valor,
-  }))
+function formatFechaCompleta(fecha: string): string {
+  const d = new Date(fecha + 'T00:00:00')
+  return d.toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric' })
+}
 
-  const yMin = Math.min(...chartData.map(p => p.valor))
-  const yMax = Math.max(...chartData.map(p => p.valor))
+export function PriceChart({
+  data,
+  color = '#60a5fa',
+  height = 300,
+  currency = '$',
+  overlays,
+}: Props) {
+  const tieneOverlays = overlays && overlays.length > 0
+
+  // Si NO hay overlays, mantenemos el comportamiento original
+  // (la API devuelve histórico DESC y este componente lo invierte para mostrar).
+  // Si hay overlays, asumimos que `data` ya viene en ASC y alineado con los overlays.
+  const dataAlineada = tieneOverlays ? data : [...data].reverse()
+
+  const chartData = dataAlineada.map((p, i) => {
+    const punto: Record<string, number | string | null> = {
+      fecha: formatFecha(p.fecha),
+      _fechaCompleta: formatFechaCompleta(p.fecha),
+      valor: p.valor,
+    }
+    if (tieneOverlays) {
+      for (const ov of overlays!) {
+        punto[ov.label] = ov.values[i] ?? null
+      }
+    }
+    return punto
+  })
+
+  // Rango Y considerando precio + overlays para que las líneas no se salgan
+  const valoresParaRango: number[] = chartData.flatMap(p => {
+    const arr: number[] = [p.valor as number]
+    if (tieneOverlays) {
+      for (const ov of overlays!) {
+        const v = p[ov.label]
+        if (typeof v === 'number') arr.push(v)
+      }
+    }
+    return arr
+  })
+  const yMin = Math.min(...valoresParaRango)
+  const yMax = Math.max(...valoresParaRango)
   const padding = (yMax - yMin) * 0.1 || yMax * 0.05
 
   return (
     <ResponsiveContainer width="100%" height={height}>
-      <AreaChart data={chartData}>
-        <defs>
-          <linearGradient id={`grad-${color.replace('#', '')}`} x1="0" y1="0" x2="0" y2="1">
-            <stop offset="5%"  stopColor={color} stopOpacity={0.35} />
-            <stop offset="95%" stopColor={color} stopOpacity={0.02} />
-          </linearGradient>
-        </defs>
+      <ComposedChart data={chartData}>
         <CartesianGrid strokeDasharray="3 3" stroke="#27272a" />
         <XAxis
           dataKey="fecha"
           stroke="#52525b"
           tick={{ fontSize: 12 }}
-          minTickGap={40}
+          minTickGap={tieneOverlays ? 30 : 40}
           interval="preserveStartEnd"
-          tickFormatter={(value) => {
-            const d = new Date(value)
-            return d.toLocaleDateString('es-ES', { day: '2-digit', month: 'short' })
-          }}
         />
         <YAxis
           stroke="#52525b"
@@ -63,18 +112,47 @@ export function PriceChart({ data, color = '#60a5fa', height = 300, currency = '
         />
         <Tooltip
           contentStyle={{ backgroundColor: '#18181b', border: 'none', borderRadius: '12px', color: '#e4e4e7' }}
-          formatter={(value: number) => [`${currency}${value.toLocaleString('es-ES')}`, 'Precio']}
+          labelFormatter={(_label: unknown, payload: any[]) =>
+            payload?.[0]?.payload?._fechaCompleta ?? _label
+          }
+          formatter={(value: unknown, name: string) => {
+            if (value == null) return ['—', name]
+            const num = typeof value === 'number' ? value : Number(value)
+            const label = name === 'valor' ? 'Precio' : name
+            return [`${currency}${num.toLocaleString('es-ES')}`, label]
+          }}
         />
-        <Area
+        {tieneOverlays && (
+          <Legend
+            verticalAlign="top"
+            height={36}
+            wrapperStyle={{ paddingBottom: '8px' }}
+            formatter={(value) => value === 'valor' ? 'Precio' : value}
+          />
+        )}
+        <Line
           type="linear"
           dataKey="valor"
           stroke={color}
-          strokeWidth={3}
-          fill={`url(#grad-${color.replace('#', '')})`}
-          dot={{ fill: color, r: 4, stroke: '#18181b', strokeWidth: 2 }}
+          strokeWidth={tieneOverlays ? 2 : 3}
+          fill="none"
+          dot={false}
           activeDot={{ r: 6 }}
         />
-      </AreaChart>
+        {tieneOverlays && overlays!.map(ov => (
+          <Line
+            key={ov.label}
+            type="natural"
+            dataKey={ov.label}
+            stroke={ov.color}
+            strokeWidth={2}
+            dot={false}
+            connectNulls={false}
+            activeDot={false}
+            isAnimationActive={false}
+          />
+        ))}
+      </ComposedChart>
     </ResponsiveContainer>
   )
 }
