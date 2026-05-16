@@ -152,7 +152,7 @@ export default function SimulacionPage() {
                 <p className="text-amber-300 font-medium">{vacio.mensaje}</p>
                 {vacio.tipo === 'sinHistorico' && (
                   <p className="text-zinc-400 text-sm mt-2">
-                    Carga histórico desde el panel admin (<code>/api/precios/cargar-historico</code>) o espera a que se acumulen suficientes precios diarios.
+                    Carga histórico ejecutando <code>python scripts/cargar_5años.py</code> o espera a que se acumulen suficientes precios diarios.
                   </p>
                 )}
               </div>
@@ -271,7 +271,6 @@ function KpiCard({ label, valor, delta, colorBg, colorText, destacado }: KpiProp
 // ── Cono Monte Carlo ────────────────────────────────────────
 
 function ConoSimulacion({ resultado }: { resultado: ResultadoMonteCarlo }) {
-  // Construir datos para Recharts: [{dia, p10, p50, p90}, ...]
   const datos = resultado.series.p10.map((_, i) => ({
     dia: i,
     p10: resultado.series.p10[i],
@@ -280,7 +279,6 @@ function ConoSimulacion({ resultado }: { resultado: ResultadoMonteCarlo }) {
     rango: [resultado.series.p10[i], resultado.series.p90[i]],
   }))
 
-  // Ticks del eje X cada ~21 días para no saturar
   const tickStep = Math.max(1, Math.floor(resultado.horizonteDias / 12))
   const ticks = datos.filter((_, i) => i % tickStep === 0).map(d => d.dia)
 

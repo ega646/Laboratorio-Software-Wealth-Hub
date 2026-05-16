@@ -104,10 +104,11 @@ export function simularTrayectoria(
 ): number[] {
   const trayectoria: number[] = new Array(dias + 1)
   trayectoria[0] = valorInicial
-  const drift = mu - 0.5 * sigma * sigma
+  // mu ya es la media de log-returns (μ_geométrico = μ_aritmético - σ²/2).
+  // Aplicar la corrección de Itô aquí sería doblarla y sesgar la mediana a la baja.
   for (let t = 1; t <= dias; t++) {
     const z = gaussianoBoxMuller()
-    trayectoria[t] = trayectoria[t - 1] * Math.exp(drift + sigma * z)
+    trayectoria[t] = trayectoria[t - 1] * Math.exp(mu + sigma * z)
   }
   return trayectoria
 }

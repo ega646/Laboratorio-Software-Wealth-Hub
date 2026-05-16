@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { regenerarRecomendacionesUsuario } from '@/lib/server/regenerarRecomendaciones'
-import { calcularIndicadores } from '@/lib/utils/indicadores'
+import { calcularIndicadores, DIAS_MERCADO_BOLSA, DIAS_MERCADO_CRYPTO } from '@/lib/utils/indicadores'
 import type { ActivoPoseidoConPrecio } from '@/lib/types'
 import { convertirDivisa } from '@/app/api/cambios/route'
 
@@ -111,9 +111,12 @@ export async function GET(
     : 0
 
   // UC16: indicadores técnicos sobre la serie ASC
+  // Crypto opera 365 días/año; acciones/ETFs solo ~252 días hábiles de bolsa.
   const historicoAsc = (historico ?? []).slice().reverse()
   const serieValores = historicoAsc.map(h => Number(h.valor))
-  const indicadores = calcularIndicadores(serieValores)
+  const tipocodigo = posiciones[0].activos?.tipocodigo ?? 'OTRO'
+  const diasAnio = tipocodigo === 'CRYPTO' ? DIAS_MERCADO_CRYPTO : DIAS_MERCADO_BOLSA
+  const indicadores = calcularIndicadores(serieValores, diasAnio)
 
   const smaSeries = historicoAsc.map((h, i) => ({
     fecha: h.fecha as string,

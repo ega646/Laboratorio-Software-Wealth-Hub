@@ -59,7 +59,7 @@ async function descargarYahooHistorico(
 }
 
 export async function cargarHistorico({
-  dias = 365,
+  dias,
   soloActivoCodigo,
 }: {
   dias?: number
@@ -82,7 +82,10 @@ export async function cargarHistorico({
   }
 
   const hasta = Math.floor(Date.now() / 1000)
-  const desde = hasta - dias * 24 * 60 * 60
+  // Sin días especificados → todo el histórico disponible (Yahoo devuelve lo que tiene)
+  const desde = dias != null
+    ? hasta - dias * 24 * 60 * 60
+    : 0
 
   // Descargar todos en paralelo — Yahoo Finance no tiene rate limit práctico
   const resultados = await Promise.allSettled(

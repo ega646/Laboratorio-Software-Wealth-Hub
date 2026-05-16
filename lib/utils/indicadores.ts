@@ -8,8 +8,11 @@
 export type TendenciaCorto = 'alcista' | 'bajista' | 'lateral' | 'sin_datos'
 export type NivelVolatilidad = 'baja' | 'media' | 'alta' | 'sin_datos'
 
-// Días de mercado al año (estándar de la industria)
-const DIAS_MERCADO_ANIO = 252
+// Factores de anualización según el mercado del activo.
+// Bolsa tradicional cierra fines de semana + feriados (~252 días hábiles).
+// Crypto opera 24/7 los 365 días del año.
+export const DIAS_MERCADO_BOLSA  = 252
+export const DIAS_MERCADO_CRYPTO = 365
 
 // ── SMA: Simple Moving Average ──────────────────────────────
 
@@ -72,6 +75,7 @@ export function calcularEMA(serie: number[], periodo: number): (number | null)[]
 export function calcularVolatilidadAnualizada(
   serie: number[],
   ventana = 30,
+  diasAnio = DIAS_MERCADO_BOLSA,
 ): number | null {
   if (serie.length < ventana + 1) return null
 
@@ -87,7 +91,7 @@ export function calcularVolatilidadAnualizada(
   const media = retornos.reduce((s, r) => s + r, 0) / retornos.length
   const varianza = retornos.reduce((s, r) => s + (r - media) ** 2, 0) / (retornos.length - 1)
   const desv = Math.sqrt(varianza)
-  return desv * Math.sqrt(DIAS_MERCADO_ANIO)
+  return desv * Math.sqrt(diasAnio)
 }
 
 
@@ -124,7 +128,7 @@ export interface MaxMin {
  * Devuelve el max y min de los últimos N días (12 meses ≈ 252 días).
  * Si la serie es más corta, usa toda la disponible.
  */
-export function calcularMaxMin(serie: number[], dias = DIAS_MERCADO_ANIO): MaxMin | null {
+export function calcularMaxMin(serie: number[], dias = DIAS_MERCADO_BOLSA): MaxMin | null {
   if (serie.length === 0) return null
   const tramo = serie.slice(-dias)
   return {
@@ -190,7 +194,10 @@ export interface IndicadoresActivo {
  * Calcula todos los indicadores de un activo a partir de su serie de
  * precios en orden cronológico ASCENDENTE.
  */
-export function calcularIndicadores(serieAsc: number[]): IndicadoresActivo {
+export function calcularIndicadores(
+  serieAsc: number[],
+  diasAnio = DIAS_MERCADO_BOLSA,
+): IndicadoresActivo {
   const diasDeHistorico = serieAsc.length
 
   const serieSMA50 = calcularSMA(serieAsc, 50)
@@ -200,10 +207,10 @@ export function calcularIndicadores(serieAsc: number[]): IndicadoresActivo {
   const sma200 = serieSMA200[serieSMA200.length - 1] ?? null
 
   const tendencia = clasificarTendencia(sma50, sma200)
-  const volatilidad = calcularVolatilidadAnualizada(serieAsc, 30)
+  const volatilidad = calcularVolatilidadAnualizada(serieAsc, 30, diasAnio)
   const nivelVolatilidad = clasificarVolatilidad(volatilidad)
   const drawdownMax = calcularDrawdownMax(serieAsc)
-  const maxMin12m = calcularMaxMin(serieAsc, DIAS_MERCADO_ANIO)
+  const maxMin12m = calcularMaxMin(serieAsc, DIAS_MERCADO_BOLSA)
 
   const textoDescriptivo = generarTextoDescriptivo({
     tendencia,
