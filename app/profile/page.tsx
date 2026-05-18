@@ -5,13 +5,15 @@ import { Header } from "@/components/Header";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
-  User, Settings, Shield, CreditCard, MapPin, Briefcase,
-  ArrowLeft, LogOut
+  User, Settings, Shield, CreditCard, Briefcase,
+  ArrowLeft, LogOut, Link as LinkIcon, Key, Eye, EyeOff
 } from "lucide-react";
 import { useAuth } from "@/lib/context/AuthContext";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import type { Perfil } from "@/lib/types";
 
 interface PerfilConEmail extends Perfil {
@@ -54,33 +56,26 @@ export default function PerfilPage() {
   };
 
   return (
-    <div className="min-h-screen text-white">
+    <div className="min-h-screen text-white bg-black">
       <Header />
-
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        <Button
-          variant="ghost"
-          asChild
-          className="mb-10 text-zinc-400 hover:text-white h-12 text-lg px-6"
-        >
+        <Button variant="ghost" asChild className="mb-10 text-zinc-400 hover:text-white h-12 text-lg px-6">
           <Link href="/dashboard" className="flex items-center gap-3">
             <ArrowLeft className="w-6 h-6" />
             Volver al Dashboard
           </Link>
         </Button>
 
-        {/* Perfil Header */}
         <Card className="bg-zinc-900/70 border border-white/5 mb-12">
           <CardContent className="p-12">
             <div className="flex flex-col md:flex-row gap-8 items-center">
               <div className="w-28 h-28 bg-gradient-to-br from-blue-500 to-purple-500 rounded-3xl flex items-center justify-center text-white text-5xl font-bold shrink-0">
                 {iniciales}
               </div>
-              <div className="flex-1">
+              <div className="flex-1 text-center md:text-left">
                 <h1 className="text-5xl font-bold">{perfil?.nombrecompleto || 'Cargando...'}</h1>
                 <p className="text-2xl text-zinc-400 mt-2">{perfil?.email || ''}</p>
-
-                <div className="flex flex-wrap gap-6 mt-8">
+                <div className="flex flex-wrap justify-center md:justify-start gap-6 mt-8">
                   <div className="flex items-center gap-3 text-zinc-400">
                     <Briefcase className="w-5 h-5" />
                     {perfilRiesgoLabel[perfil?.perfilriesgocodigo ?? ''] ?? 'Sin perfil de riesgo'}
@@ -91,20 +86,11 @@ export default function PerfilPage() {
                   </div>
                 </div>
               </div>
-
-              <div className="flex gap-4">
-                <Button
-                  asChild
-                  variant="outline"
-                  className="h-12 px-8 text-lg"
-                >
+              <div className="flex flex-col gap-4">
+                <Button asChild variant="outline" className="h-12 px-8 text-lg">
                   <Link href="/profile/edit">Editar Perfil</Link>
                 </Button>
-                <Button
-                  variant="outline"
-                  onClick={handleLogout}
-                  className="h-12 px-8 text-lg"
-                >
+                <Button variant="outline" onClick={handleLogout} className="h-12 px-8 text-lg text-red-400 hover:text-red-300">
                   <LogOut className="w-5 h-5 mr-2" />
                   Cerrar Sesión
                 </Button>
@@ -113,7 +99,6 @@ export default function PerfilPage() {
           </CardContent>
         </Card>
 
-        {/* Main Content */}
         <div className="grid lg:grid-cols-4 gap-8">
           <div className="lg:col-span-1">
             <Card className="bg-zinc-900/70 border border-white/5 sticky top-24">
@@ -188,33 +173,145 @@ function GeneralInfo({ perfil }: { perfil: PerfilConEmail | null }) {
 }
 
 function LinkedAccounts() {
+  const [connectingTo, setConnectingTo] = useState<string | null>(null);
+  const [showSecret, setShowSecret] = useState(false);
+  const [isSyncing, setIsSyncing] = useState(false);
+
   const accounts = [
-    { name: "Binance", type: "Exchange", status: "Desconectada", color: "bg-yellow-500" },
-    { name: "Interactive Brokers", type: "Broker", status: "Desconectada", color: "bg-blue-500" },
-    { name: "Coinbase", type: "Exchange", status: "Desconectada", color: "bg-indigo-500" },
+    { id: "binance", name: "Binance", type: "Exchange", status: "Conectada", color: "bg-yellow-500" },
+    { id: "ib", name: "Interactive Brokers", type: "Broker", status: "Desconectada", color: "bg-blue-500" },
+    { id: "coinbase", name: "Coinbase", type: "Exchange", status: "Desconectada", color: "bg-indigo-500" },
   ];
+
+  // Función para manejar la sincronización manual
+  const handleSyncData = async () => {
+    setIsSyncing(true);
+    // Aquí iría la llamada a tu API, por ejemplo: /api/sync-accounts
+    try {
+      await new Promise(resolve => setTimeout(resolve, 2000)); // Simulación de carga
+      console.log("Datos actualizados correctamente");
+    } catch (error) {
+      console.error("Error al sincronizar");
+    } finally {
+      setIsSyncing(false);
+    }
+  };
+
+  if (connectingTo) {
+    const selected = accounts.find(a => a.id === connectingTo);
+    return (
+      <Card className="bg-zinc-900/70 border border-white/5 animate-in fade-in slide-in-from-right-4">
+        <CardHeader className="border-b border-white/5 pb-6">
+          <div className="flex items-center gap-4">
+            <Button variant="ghost" size="icon" onClick={() => setConnectingTo(null)}>
+              <ArrowLeft className="w-6 h-6" />
+            </Button>
+            <div>
+              <CardTitle className="text-3xl">Conectar {selected?.name}</CardTitle>
+              <CardDescription className="text-lg">Introduce tus credenciales de API</CardDescription>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent className="pt-8 space-y-6">
+          <div className="bg-yellow-500/10 border border-yellow-500/20 p-4 rounded-xl text-yellow-200 text-sm">
+            Nota: Asegúrate de que la API Key tenga permisos de **"Lectura"** (Read-Only). Nunca compartas una clave con permisos de retiro.
+          </div>
+          
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="apiKey" className="text-zinc-400">API Key</Label>
+              <div className="relative">
+                <Key className="absolute left-3 top-3 w-5 h-5 text-zinc-500" />
+                <Input id="apiKey" placeholder="Tu API Key" className="bg-zinc-950 border-white/10 pl-11 h-12 text-lg" />
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="apiSecret" className="text-zinc-400">API Secret</Label>
+              <div className="relative">
+                <Key className="absolute left-3 top-3 w-5 h-5 text-zinc-500" />
+                <Input 
+                  id="apiSecret" 
+                  type={showSecret ? "text" : "password"} 
+                  placeholder="Tu API Secret" 
+                  className="bg-zinc-950 border-white/10 pl-11 pr-11 h-12 text-lg" 
+                />
+                <button 
+                  onClick={() => setShowSecret(!showSecret)}
+                  className="absolute right-3 top-3 text-zinc-500 hover:text-white"
+                >
+                  {showSecret ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div className="flex gap-4 pt-4">
+            <Button className="flex-1 h-12 text-lg bg-blue-600 hover:bg-blue-500 text-white font-semibold">
+              Validar y Guardar Conexión
+            </Button>
+            <Button variant="ghost" className="h-12 text-lg" onClick={() => setConnectingTo(null)}>
+              Cancelar
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
 
   return (
     <Card className="bg-zinc-900/70 border border-white/5">
-      <CardHeader>
-        <CardTitle className="text-3xl">Cuentas Vinculadas</CardTitle>
-        <CardDescription className="text-zinc-400 text-lg">Exchange y brokers conectados</CardDescription>
+      <CardHeader className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+        <div>
+          <CardTitle className="text-3xl">Cuentas Vinculadas</CardTitle>
+          <CardDescription className="text-zinc-400 text-lg">Centraliza tus activos conectando tus plataformas</CardDescription>
+        </div>
+        <Button 
+          onClick={handleSyncData} 
+          disabled={isSyncing}
+          className="bg-emerald-600 hover:bg-emerald-500 text-white h-11 px-6 text-base font-medium transition-all"
+        >
+          {isSyncing ? (
+            <>
+              <span className="animate-spin mr-2">⏳</span>
+              Sincronizando...
+            </>
+          ) : (
+            <>
+              
+              Actualizar Datos
+            </>
+          )}
+        </Button>
       </CardHeader>
       <CardContent className="space-y-4">
-        {accounts.map((account, index) => (
-          <div key={index} className="flex items-center justify-between p-6 bg-zinc-950/70 rounded-2xl border border-white/5">
+        {accounts.map((account) => (
+          <div key={account.id} className="flex items-center justify-between p-6 bg-zinc-950/70 rounded-2xl border border-white/5 hover:border-white/10 transition-colors">
             <div className="flex items-center gap-5">
-              <div className={`w-12 h-12 ${account.color} rounded-2xl flex items-center justify-center text-white font-medium text-xl`}>
+              <div className={`w-12 h-12 ${account.color} rounded-2xl flex items-center justify-center text-white font-medium text-xl shadow-lg`}>
                 {account.name.substring(0, 2)}
               </div>
               <div>
                 <p className="font-semibold text-xl">{account.name}</p>
-                <p className="text-zinc-400">{account.type}</p>
+                <div className="flex items-center gap-2">
+                  <Badge variant="outline" className="text-xs uppercase text-zinc-500 border-zinc-800">
+                    {account.type}
+                  </Badge>
+                  <span className="text-zinc-500 text-sm">•</span>
+                  <span className={`text-sm ${account.status === "Conectada" ? "text-emerald-400" : "text-zinc-500"}`}>
+                    {account.status}
+                  </span>
+                </div>
               </div>
             </div>
-            <Badge variant="secondary" className="text-base px-5 py-1.5">
-              {account.status}
-            </Badge>
+            <Button 
+              variant="outline" 
+              className="px-6 h-11 border-zinc-700 hover:bg-zinc-800"
+              onClick={() => setConnectingTo(account.id)}
+            >
+              <LinkIcon className="w-4 h-4 mr-2" />
+              {account.status === "Conectada" ? "Reconfigurar" : "Conectar"}
+            </Button>
           </div>
         ))}
       </CardContent>
@@ -225,8 +322,8 @@ function LinkedAccounts() {
 function RiskProfile({ perfilRiesgo }: { perfilRiesgo?: string }) {
   const perfiles: Record<string, { label: string; desc: string; color: string }> = {
     BAJO:  { label: 'Conservador', desc: '"Prefiero ganar poco pero dormir tranquilo"', color: 'from-green-500 to-emerald-600' },
-    MEDIO: { label: 'Moderado',    desc: '"Quiero crecer, pero sin sobresaltos extremos"', color: 'from-blue-500 to-indigo-600' },
-    ALTO:  { label: 'Agresivo',    desc: '"Asumo volatilidad porque creo en el crecimiento a largo plazo"', color: 'from-orange-500 to-red-600' },
+    MEDIO: { label: 'Moderado',     desc: '"Quiero crecer, pero sin sobresaltos extremos"', color: 'from-blue-500 to-indigo-600' },
+    ALTO:  { label: 'Agresivo',     desc: '"Asumo volatilidad porque creo en el crecimiento a largo plazo"', color: 'from-orange-500 to-red-600' },
   };
 
   const actual = perfiles[perfilRiesgo ?? 'MEDIO'] ?? perfiles.MEDIO;
