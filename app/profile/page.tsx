@@ -16,6 +16,11 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import type { Perfil } from "@/lib/types";
 
+// --- NUEVAS IMPORTACIONES DE SERVICIOS ---
+import { procesarVinculoBinance } from "@/app/api/services/binance";
+import { procesarVinculoManual } from "@/app/api/services/manual";
+import { procesarVinculoCoinbase } from "@/app/api/services/coinbase";
+
 interface PerfilConEmail extends Perfil {
   email: string;
 }
@@ -66,6 +71,7 @@ export default function PerfilPage() {
           </Link>
         </Button>
 
+        {/* Header de Perfil */}
         <Card className="bg-zinc-900/70 border border-white/5 mb-12">
           <CardContent className="p-12">
             <div className="flex flex-col md:flex-row gap-8 items-center">
@@ -125,7 +131,7 @@ export default function PerfilPage() {
 
           <div className="lg:col-span-3">
             {selectedTab === "general" && <GeneralInfo perfil={perfil} />}
-            {selectedTab === "accounts" && <LinkedAccounts />}
+            {selectedTab === "accounts" && <LinkedAccounts userId={perfil?.id} />}
             {selectedTab === "risk" && <RiskProfile perfilRiesgo={perfil?.perfilriesgocodigo} />}
             {selectedTab === "preferences" && <Preferences divisaBase={perfil?.divisabasecodigo} />}
           </div>
@@ -172,10 +178,15 @@ function GeneralInfo({ perfil }: { perfil: PerfilConEmail | null }) {
   );
 }
 
-function LinkedAccounts() {
+function LinkedAccounts({ userId }: { userId?: string }) {
   const [connectingTo, setConnectingTo] = useState<string | null>(null);
   const [showSecret, setShowSecret] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
+
+  const [formData, setFormData] = useState({
+    apiKey: "",
+    apiSecret: "",
+  });
 
   const accounts = [
     { id: "binance", name: "Binance", type: "Exchange", status: "Conectada", color: "bg-yellow-500" },
@@ -183,15 +194,54 @@ function LinkedAccounts() {
     { id: "coinbase", name: "Coinbase", type: "Exchange", status: "Desconectada", color: "bg-indigo-500" },
   ];
 
-  // Función para manejar la sincronización manual
   const handleSyncData = async () => {
     setIsSyncing(true);
-    // Aquí iría la llamada a tu API, por ejemplo: /api/sync-accounts
     try {
-      await new Promise(resolve => setTimeout(resolve, 2000)); // Simulación de carga
+      await new Promise(resolve => setTimeout(resolve, 2000));
       console.log("Datos actualizados correctamente");
     } catch (error) {
       console.error("Error al sincronizar");
+    } finally {
+      setIsSyncing(false);
+    }
+  };
+
+  // --- LÓGICA DE GUARDADO ACTUALIZADA CON SERVICIOS ---
+  const handleSaveConnection = async () => {
+    if (!formData.apiKey || !formData.apiSecret) {
+      alert("Por favor, rellena todos los campos.");
+      return;
+    }
+
+    if (!userId) {
+      alert("Error: No se ha detectado el ID de usuario.");
+      return;
+    }
+
+    setIsSyncing(true);
+
+      try {
+        if (connectingTo === "binance") {
+          // Llama al TS de Binance que a su vez llama a insertarVinculo
+          const result = await procesarVinculoBinance(userId, formData.apiKey, formData.apiSecret);
+          if (result.success) {
+            alert(`¡Éxito! Se han vinculado ${result.count} activos de Binance.`);
+          }
+        } else if (connectingTo === "coinbase") {
+      const result = await procesarVinculoCoinbase(userId, formData.apiKey, formData.apiSecret);
+      if (result.success) {
+        alert(`¡Éxito! Se han vinculado ${result.count} activos de Coinbase.`);
+      }
+    }else {
+          // Ejemplo de uso del segundo TS (Manual) para otros casos
+          await procesarVinculoManual(userId, "BTC", 0.0); 
+          alert("Cuenta vinculada (modo manual).");
+        }
+
+      setConnectingTo(null);
+      setFormData({ apiKey: "", apiSecret: "" });
+    } catch (err: any) {
+      alert("Error: " + (err.message || "Fallo al procesar el vínculo. Revisa tus credenciales."));
     } finally {
       setIsSyncing(false);
     }
@@ -203,7 +253,7 @@ function LinkedAccounts() {
       <Card className="bg-zinc-900/70 border border-white/5 animate-in fade-in slide-in-from-right-4">
         <CardHeader className="border-b border-white/5 pb-6">
           <div className="flex items-center gap-4">
-            <Button variant="ghost" size="icon" onClick={() => setConnectingTo(null)}>
+            <Button variant="ghost" size="icon" onClick={() => { setConnectingTo(null); setFormData({apiKey:"", apiSecret:""}); }}>
               <ArrowLeft className="w-6 h-6" />
             </Button>
             <div>
@@ -222,12 +272,19 @@ function LinkedAccounts() {
               <Label htmlFor="apiKey" className="text-zinc-400">API Key</Label>
               <div className="relative">
                 <Key className="absolute left-3 top-3 w-5 h-5 text-zinc-500" />
-                <Input id="apiKey" placeholder="Tu API Key" className="bg-zinc-950 border-white/10 pl-11 h-12 text-lg" />
+                <Input 
+                  id="apiKey" 
+                  placeholder="Tu API Key" 
+                  className="bg-zinc-950 border-white/10 pl-11 h-12 text-lg"
+                  value={formData.apiKey}
+                  onChange={(e) => setFormData({ ...formData, apiKey: e.target.value })}
+                  disabled={isSyncing}
+                />
               </div>
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="apiSecret" className="text-zinc-400">API Secret</Label>
+              <Label htmlFor="apiSecret" className="text-zinc-400">API Secret / Private Key</Label>
               <div className="relative">
                 <Key className="absolute left-3 top-3 w-5 h-5 text-zinc-500" />
                 <Input 
@@ -235,8 +292,12 @@ function LinkedAccounts() {
                   type={showSecret ? "text" : "password"} 
                   placeholder="Tu API Secret" 
                   className="bg-zinc-950 border-white/10 pl-11 pr-11 h-12 text-lg" 
+                  value={formData.apiSecret}
+                  onChange={(e) => setFormData({ ...formData, apiSecret: e.target.value })}
+                  disabled={isSyncing}
                 />
                 <button 
+                  type="button"
                   onClick={() => setShowSecret(!showSecret)}
                   className="absolute right-3 top-3 text-zinc-500 hover:text-white"
                 >
@@ -247,10 +308,14 @@ function LinkedAccounts() {
           </div>
 
           <div className="flex gap-4 pt-4">
-            <Button className="flex-1 h-12 text-lg bg-blue-600 hover:bg-blue-500 text-white font-semibold">
-              Validar y Guardar Conexión
+            <Button 
+              className="flex-1 h-12 text-lg bg-blue-600 hover:bg-blue-500 text-white font-semibold"
+              onClick={handleSaveConnection}
+              disabled={isSyncing}
+            >
+              {isSyncing ? "Validando..." : "Validar y Guardar Conexión"}
             </Button>
-            <Button variant="ghost" className="h-12 text-lg" onClick={() => setConnectingTo(null)}>
+            <Button variant="ghost" className="h-12 text-lg" onClick={() => setConnectingTo(null)} disabled={isSyncing}>
               Cancelar
             </Button>
           </div>
@@ -277,10 +342,7 @@ function LinkedAccounts() {
               Sincronizando...
             </>
           ) : (
-            <>
-              
-              Actualizar Datos
-            </>
+            <>Actualizar Datos</>
           )}
         </Button>
       </CardHeader>
