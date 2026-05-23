@@ -1,7 +1,11 @@
 // lib/services/binance.ts
 import { insertarVinculo } from "./vinculos";
 
-export async function procesarVinculoBinance(usuarioId: string, apiKey: string, apiSecret: string) {
+export async function procesarVinculoBinance(
+    apiKey: string,
+    apiSecret: string) {
+
+   /*
   // 1. Validamos y obtenemos saldos desde nuestra API de validación
   const res = await fetch('/api/cuentas/test-connection', {
     method: 'POST',
@@ -28,6 +32,14 @@ export async function procesarVinculoBinance(usuarioId: string, apiKey: string, 
       );
     }
   }
+  */
+  await insertarVinculo(
+          'BINANCE',
+          new Date().toISOString(), // fecha de inicio
+          apiKey,
+          apiSecret
+        );
+
   
   return { success: true, count: data.balances?.length || 0 };
 }

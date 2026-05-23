@@ -173,3 +173,12 @@ export interface DatosDesbalance {
     severidad: SeveridadRecomendacion
   }[]
 }
+
+// Estructura de nuevaCuenta
+export interface NuevaCuenta {
+    tipoCuenta: string,
+    fechaInicio: string,
+    apikey_cifrada: string,
+    secretkey_cifrada: string
+}
+
