@@ -82,6 +82,8 @@ El backend está estructurado de forma modular mediante Route Handlers:
 
 Desarrollado con un enfoque en escalabilidad financiera y experiencia de usuario.
 
+---
+
 ##  Sprint Actual — Funcionalidades Implementadas
 
 Durante este sprint se han completado las siguientes funcionalidades clave del sistema:
@@ -147,4 +149,9 @@ Durante este sprint se han completado las siguientes funcionalidades clave del s
 
 ---
 
+##  Contribuidores
 
+| Contribuidor | Rol |
+| ------------ | --- |
+| Equipo Wealth Hub | Desarrollo del proyecto |
+| [Claude](https://claude.ai) (Anthropic) | Asistente de IA — apoyo en el aprendizaje y comprensión de TypeScript, un lenguaje nuevo para el equipo durante el desarrollo del proyecto |
