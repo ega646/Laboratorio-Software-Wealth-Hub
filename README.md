@@ -134,6 +134,13 @@ Durante este sprint se han completado las siguientes funcionalidades clave del s
 * Sistema de actualización automática periódica.
 * Gestión segura de API Keys en `.env.local`.
 
+### Integraciones Financieras (UC06)
+* Multi-Exchange: Conexión automatizada con Binance y Coinbase.
+
+* Seguridad Bancaria: Gestión de credenciales cifradas y autenticación mediante firmas HMAC-SHA256.
+
+* Servicios Modulares: Arquitectura extensible en @/lib/services para nuevos proveedores financieros.
+
 ###  Backend y Arquitectura
 
 * Diseño modular de endpoints API bajo `/app/api`.
@@ -146,6 +153,15 @@ Durante este sprint se han completado las siguientes funcionalidades clave del s
 * Login con email y contraseña.
 * Logout.
 * Protección de rutas privadas (`/dashboard`, `/profile`) mediante middleware.
+
+### Análisis y Simulación (UC10, UC12, UC14, UC16, UC17)
+* Simulación Monte Carlo: Proyecciones estadísticas (P10/P50/P90) basadas en la volatilidad real de la cartera.
+
+* Backtesting Histórico: Evaluación del comportamiento de la cartera ante eventos de mercado pasados.
+
+* Análisis Técnico: Indicadores visuales integrados (SMA 50/200) y detección de tendencias.
+
+* Perfil de Riesgo: Motor de balanceo que detecta desviaciones frente al target del usuario y genera alertas automáticas.
 
 ---
 
