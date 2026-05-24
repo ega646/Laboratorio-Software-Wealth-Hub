@@ -229,17 +229,29 @@ function LinkedAccounts({
 
 
 
-  const handleSyncData = async () => {
-    setIsSyncing(true);
-    try {
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      console.log("Datos actualizados correctamente");
-    } catch (error) {
-      console.error("Error al sincronizar");
-    } finally {
-      setIsSyncing(false);
+const handleSyncData = async () => {
+  setIsSyncing(true);
+
+  try {
+    const response = await fetch('/api/services', {
+      method: 'POST'
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data.error);
     }
-  };
+
+    console.log('Sincronización completada');
+
+  } catch (error: any) {
+    console.error(error.message);
+
+  } finally {
+    setIsSyncing(false);
+  }
+};
 
   // --- LÓGICA DE GUARDADO ACTUALIZADA CON SERVICIOS ---
   const handleSaveConnection = async () => {
@@ -376,8 +388,7 @@ function LinkedAccounts({
           >
             <div className="flex items-center gap-5">
               <div
-                className="w-12 h-12 rounded-2xl flex items-center justify-center text-white font-medium text-xl shadow-lg"
-                style={{ backgroundColor: account.color }}
+                className={`w-12 h-12 rounded-2xl flex items-center justify-center text-white font-medium text-xl shadow-lg ${account.color}`}
               >
                 {account.descripcion.substring(0, 2)}
               </div>

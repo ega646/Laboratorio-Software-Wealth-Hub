@@ -9,6 +9,7 @@
     "lint": "eslint"
   },
   "dependencies": {
+    "@binance/connector": "^3.6.1",
     "@phosphor-icons/react": "^2.1.10",
     "@supabase/ssr": "^0.6.1",
     "@supabase/supabase-js": "^2.49.4",
