@@ -1,24 +1,35 @@
-import { NextResponse } from "next/server";
-import { createClient } from "@/lib/utils/supabase/server"; // Ajusta según tu proyecto
+import { NextResponse } from 'next/server'
+import { createClient } from '@/lib/supabase/server'
 
-export async function POST(req: Request) {
-  const { usuarioId, codigoActivo, fechaInicio, cantidad, exchange } = await req.json();
+export async function POST(request: Request) {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
 
-  const supabase = createClient();
+  const body: NuevaCuenta = await request.json()
 
   const { data, error } = await supabase
-    .from('vinculos') // Asegúrate de que la tabla se llame así
-    .insert([
-      { 
-        usuario_id: usuarioId, 
-        activo_id: codigoActivo, 
-        fecha_inicio: fechaInicio, 
-        cantidad: cantidad,
-        origen: exchange 
-      }
-    ]);
+    .from('cuentas')
+    .upsert({
+      tipocuentacodigo: body.tipoCuenta,
+      fechaenlace: new Date().toISOString(),
+      activa: true,
+      usuario_id: user.id,
+      apikey_cifrada: body.apiKey,
+      secretkey_cifrada: body.apiSecret
+    },
+    {
+        onConflict: 'usuario_id,tipocuentacodigo'
+    }
+    )
+    .select()
+    .single()
 
-  if (error) return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+  if (error) {
+    console.log('En cuentas: ' + error.message)
+    return NextResponse.json({ error: error.message }, { status: 500 })
+  }
 
-  return NextResponse.json({ success: true, data });
+
+  return NextResponse.json(data, { status: 201 })
 }

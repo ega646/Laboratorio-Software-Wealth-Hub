@@ -16,27 +16,55 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import type { Perfil } from "@/lib/types";
 
-// --- NUEVAS IMPORTACIONES DE SERVICIOS ---
-import { procesarVinculoBinance } from "@/app/api/services/binance";
-import { procesarVinculoManual } from "@/app/api/services/manual";
-import { procesarVinculoCoinbase } from "@/app/api/services/coinbase";
 
 interface PerfilConEmail extends Perfil {
   email: string;
 }
 
+type Account = {
+  codigo: string
+  descripcion: string
+  color: string
+  status: string
+  activa: boolean | null
+}
+
 export default function PerfilPage() {
   const [selectedTab, setSelectedTab] = useState("general");
   const [perfil, setPerfil] = useState<PerfilConEmail | null>(null);
+  const [accounts, setAccounts] = useState<Account[]>([]);
   const { signOut } = useAuth();
   const router = useRouter();
 
   useEffect(() => {
     fetch('/api/perfil')
-      .then(r => r.ok ? r.json() : null)
-      .then(data => setPerfil(data))
-      .catch(() => {});
-  }, []);
+      .then(r => {
+        if (!r.ok) throw new Error('Error al cargar perfil')
+        return r.json()
+      })
+      .then(data => {
+        setPerfil(data)
+
+        return fetch('/api/cuentas')
+      })
+      .then(async r => {
+        const data = await r.json()
+
+        if (!r.ok) {
+          console.error(data)
+          throw new Error(data.error || 'Error al cargar cuentas')
+        }
+
+        return data
+      })
+      .then(accounts => {
+        setAccounts(accounts)
+      })
+      .catch(err => {
+        console.error(err)
+      })
+  }, [])
+
 
   const tabs = [
     { id: "general", label: "Información General", icon: User },
@@ -131,7 +159,12 @@ export default function PerfilPage() {
 
           <div className="lg:col-span-3">
             {selectedTab === "general" && <GeneralInfo perfil={perfil} />}
-            {selectedTab === "accounts" && <LinkedAccounts userId={perfil?.id} />}
+            {selectedTab === "accounts" && (
+              <LinkedAccounts
+                userId={perfil?.id}
+                accounts={accounts}
+              />
+            )}
             {selectedTab === "risk" && <RiskProfile perfilRiesgo={perfil?.perfilriesgocodigo} />}
             {selectedTab === "preferences" && <Preferences divisaBase={perfil?.divisabasecodigo} />}
           </div>
@@ -178,7 +211,13 @@ function GeneralInfo({ perfil }: { perfil: PerfilConEmail | null }) {
   );
 }
 
-function LinkedAccounts({ userId }: { userId?: string }) {
+function LinkedAccounts({
+  userId,
+  accounts
+}: {
+  userId?: string
+  accounts: Account[]
+}) {
   const [connectingTo, setConnectingTo] = useState<string | null>(null);
   const [showSecret, setShowSecret] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
@@ -188,67 +227,62 @@ function LinkedAccounts({ userId }: { userId?: string }) {
     apiSecret: "",
   });
 
-  const accounts = [
-    { id: "binance", name: "Binance", type: "Exchange", status: "Conectada", color: "bg-yellow-500" },
-    { id: "ib", name: "Interactive Brokers", type: "Broker", status: "Desconectada", color: "bg-blue-500" },
-    { id: "coinbase", name: "Coinbase", type: "Exchange", status: "Desconectada", color: "bg-indigo-500" },
-  ];
 
-  const handleSyncData = async () => {
-    setIsSyncing(true);
-    try {
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      console.log("Datos actualizados correctamente");
-    } catch (error) {
-      console.error("Error al sincronizar");
-    } finally {
-      setIsSyncing(false);
+
+const handleSyncData = async () => {
+  setIsSyncing(true);
+
+  try {
+    const response = await fetch('/api/services', {
+      method: 'POST'
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data.error);
     }
-  };
+
+    console.log('Sincronización completada');
+
+  } catch (error: any) {
+    console.error(error.message);
+
+  } finally {
+    setIsSyncing(false);
+  }
+};
 
   // --- LÓGICA DE GUARDADO ACTUALIZADA CON SERVICIOS ---
   const handleSaveConnection = async () => {
-    if (!formData.apiKey || !formData.apiSecret) {
-      alert("Por favor, rellena todos los campos.");
-      return;
-    }
+    try {
+      const response = await fetch('/api/vinculos', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          tipoCuenta: connectingTo,
+          apiKey: formData.apiKey,
+          apiSecret: formData.apiSecret
+        })
+      })
 
-    if (!userId) {
-      alert("Error: No se ha detectado el ID de usuario.");
-      return;
-    }
+      const data = await response.json()
 
-    setIsSyncing(true);
-
-      try {
-        if (connectingTo === "binance") {
-          // Llama al TS de Binance que a su vez llama a insertarVinculo
-          const result = await procesarVinculoBinance(userId, formData.apiKey, formData.apiSecret);
-          if (result.success) {
-            alert(`¡Éxito! Se han vinculado ${result.count} activos de Binance.`);
-          }
-        } else if (connectingTo === "coinbase") {
-      const result = await procesarVinculoCoinbase(userId, formData.apiKey, formData.apiSecret);
-      if (result.success) {
-        alert(`¡Éxito! Se han vinculado ${result.count} activos de Coinbase.`);
+      if (!response.ok) {
+        throw new Error(data.error)
       }
-    }else {
-          // Ejemplo de uso del segundo TS (Manual) para otros casos
-          await procesarVinculoManual(userId, "BTC", 0.0); 
-          alert("Cuenta vinculada (modo manual).");
-        }
 
-      setConnectingTo(null);
-      setFormData({ apiKey: "", apiSecret: "" });
+      alert('Cuenta conectada correctamente')
+
     } catch (err: any) {
-      alert("Error: " + (err.message || "Fallo al procesar el vínculo. Revisa tus credenciales."));
-    } finally {
-      setIsSyncing(false);
+      alert(err.message)
     }
-  };
+  }
 
   if (connectingTo) {
-    const selected = accounts.find(a => a.id === connectingTo);
+    const selected = accounts.find(a => a.codigo === connectingTo);
     return (
       <Card className="bg-zinc-900/70 border border-white/5 animate-in fade-in slide-in-from-right-4">
         <CardHeader className="border-b border-white/5 pb-6">
@@ -257,7 +291,7 @@ function LinkedAccounts({ userId }: { userId?: string }) {
               <ArrowLeft className="w-6 h-6" />
             </Button>
             <div>
-              <CardTitle className="text-3xl">Conectar {selected?.name}</CardTitle>
+              <CardTitle className="text-3xl">Conectar {selected?.descripcion}</CardTitle>
               <CardDescription className="text-lg">Introduce tus credenciales de API</CardDescription>
             </div>
           </div>
@@ -348,31 +382,43 @@ function LinkedAccounts({ userId }: { userId?: string }) {
       </CardHeader>
       <CardContent className="space-y-4">
         {accounts.map((account) => (
-          <div key={account.id} className="flex items-center justify-between p-6 bg-zinc-950/70 rounded-2xl border border-white/5 hover:border-white/10 transition-colors">
+          <div
+            key={account.codigo}
+            className="flex items-center justify-between p-6 bg-zinc-950/70 rounded-2xl border border-white/5 hover:border-white/10 transition-colors"
+          >
             <div className="flex items-center gap-5">
-              <div className={`w-12 h-12 ${account.color} rounded-2xl flex items-center justify-center text-white font-medium text-xl shadow-lg`}>
-                {account.name.substring(0, 2)}
+              <div
+                className={`w-12 h-12 rounded-2xl flex items-center justify-center text-white font-medium text-xl shadow-lg ${account.color}`}
+              >
+                {account.descripcion.substring(0, 2)}
               </div>
+
               <div>
-                <p className="font-semibold text-xl">{account.name}</p>
-                <div className="flex items-center gap-2">
-                  <Badge variant="outline" className="text-xs uppercase text-zinc-500 border-zinc-800">
-                    {account.type}
-                  </Badge>
-                  <span className="text-zinc-500 text-sm">•</span>
-                  <span className={`text-sm ${account.status === "Conectada" ? "text-emerald-400" : "text-zinc-500"}`}>
-                    {account.status}
-                  </span>
-                </div>
+                <p className="font-semibold text-xl">
+                  {account.descripcion}
+                </p>
+
+                <span
+                  className={`text-sm ${
+                    account.status === "conectada"
+                      ? "text-emerald-400"
+                      : "text-zinc-500"
+                  }`}
+                >
+                  {account.status}
+                </span>
               </div>
             </div>
-            <Button 
-              variant="outline" 
+
+            <Button
+              variant="outline"
               className="px-6 h-11 border-zinc-700 hover:bg-zinc-800"
-              onClick={() => setConnectingTo(account.id)}
+              onClick={() => setConnectingTo(account.codigo)}
             >
               <LinkIcon className="w-4 h-4 mr-2" />
-              {account.status === "Conectada" ? "Reconfigurar" : "Conectar"}
+              {account.status === "conectada"
+                ? "Reconfigurar"
+                : "Conectar"}
             </Button>
           </div>
         ))}
